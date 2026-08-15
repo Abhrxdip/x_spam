@@ -1,0 +1,442 @@
+{% extends "base.html" %}
+
+{% block title %}Data Explorer | Unified Threat Detector{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="glass-card p-4">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                <div>
+                    <h2 class="fw-bold mb-1 gradient-text">
+                        <i class="bi bi-database-gear me-2"></i>Interactive Dataset Explorer
+                    </h2>
+                    <p class="text-muted mb-0">Browse, filter, and inspect the 5,000+ benchmark dataset features powering the Social Media Threat Detector</p>
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-outline-light btn-sm" onclick="exportFilteredData()">
+                        <i class="bi bi-download me-1"></i> Export Filtered CSV
+                    </button>
+                    <a href="{{ url_for('train_model') }}" class="btn btn-primary btn-sm">
+                        <i class="bi bi-cpu me-1"></i> Retrain Model
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Summary Metric Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="glass-card p-3 h-100">
+            <div class="d-flex align-items-center">
+                <div class="stat-icon-wrapper bg-primary bg-opacity-25 text-primary me-3">
+                    <i class="bi bi-files"></i>
+                </div>
+                <div>
+                    <div class="text-muted small">Total Dataset Records</div>
+                    <h3 class="fw-bold mb-0" id="stat-total">{{ total_records }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="glass-card p-3 h-100">
+            <div class="d-flex align-items-center">
+                <div class="stat-icon-wrapper bg-danger bg-opacity-25 text-danger me-3">
+                    <i class="bi bi-exclamation-triangle"></i>
+                </div>
+                <div>
+                    <div class="text-muted small">Threat Samples</div>
+                    <h3 class="fw-bold mb-0 text-danger" id="stat-threats">{{ threat_count }} <span class="fs-6 text-muted">({{ threat_percent }}%)</span></h3>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="glass-card p-3 h-100">
+            <div class="d-flex align-items-center">
+                <div class="stat-icon-wrapper bg-warning bg-opacity-25 text-warning me-3">
+                    <i class="bi bi-robot"></i>
+                </div>
+                <div>
+                    <div class="text-muted small">Bot Accounts</div>
+                    <h3 class="fw-bold mb-0 text-warning" id="stat-bots">{{ bot_count }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="glass-card p-3 h-100">
+            <div class="d-flex align-items-center">
+                <div class="stat-icon-wrapper bg-success bg-opacity-25 text-success me-3">
+                    <i class="bi bi-clock-history"></i>
+                </div>
+                <div>
+                    <div class="text-muted small">Avg Account Age</div>
+                    <h3 class="fw-bold mb-0 text-success">{{ avg_age }} <span class="fs-6 text-muted">days</span></h3>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Visual Analytics Charts -->
+<div class="row g-4 mb-4">
+    <div class="col-md-5">
+        <div class="glass-card p-4 h-100">
+            <h5 class="fw-bold mb-3 d-flex align-items-center">
+                <i class="bi bi-pie-chart text-info me-2"></i> Threat Breakdown by Account Type
+            </h5>
+            <div style="height: 240px; position: relative;">
+                <canvas id="threatChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-7">
+        <div class="glass-card p-4 h-100">
+            <h5 class="fw-bold mb-3 d-flex align-items-center">
+                <i class="bi bi-bar-chart-line text-purple me-2"></i> Feature Averages (Threat vs Legitimate)
+            </h5>
+            <div style="height: 240px; position: relative;">
+                <canvas id="featureComparisonChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Data Table Controls & Search -->
+<div class="glass-card p-4 mb-4">
+    <div class="row g-3 align-items-center mb-3">
+        <div class="col-md-4">
+            <div class="input-group">
+                <span class="input-group-text bg-dark border-secondary text-muted"><i class="bi bi-search"></i></span>
+                <input type="text" id="searchInput" class="form-control bg-dark text-white border-secondary" placeholder="Search country, sentiment, words...">
+            </div>
+        </div>
+        <div class="col-md-3">
+            <select id="threatFilter" class="form-select bg-dark text-white border-secondary">
+                <option value="all">All Classification Statuses</option>
+                <option value="1">Threat Only (is_threat = 1)</option>
+                <option value="0">Legitimate Only (is_threat = 0)</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <select id="accountTypeFilter" class="form-select bg-dark text-white border-secondary">
+                <option value="all">All Account Types</option>
+                <option value="bot">Bot Only</option>
+                <option value="individual">Individual Only</option>
+                <option value="organisational">Organisational Only</option>
+            </select>
+        </div>
+        <div class="col-md-2 text-end">
+            <span class="text-muted small" id="showingCount">Showing dataset records</span>
+        </div>
+    </div>
+
+    <!-- Data Table -->
+    <div class="table-responsive">
+        <table class="table table-custom align-middle mb-0" id="dataTable">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Account Type</th>
+                    <th>Age (Days)</th>
+                    <th>Follower / Following</th>
+                    <th>Default Pic</th>
+                    <th>Sus. Content</th>
+                    <th>Spam Matches</th>
+                    <th>Threat Status</th>
+                    <th class="text-end">Details</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+                <!-- Dynamically populated via JavaScript -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination Controls -->
+    <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top border-secondary border-opacity-25">
+        <div class="text-muted small" id="paginationInfo">Page 1 of 1</div>
+        <div class="btn-group">
+            <button class="btn btn-outline-secondary btn-sm" id="prevBtn" onclick="changePage(-1)">
+                <i class="bi bi-chevron-left me-1"></i> Previous
+            </button>
+            <button class="btn btn-outline-secondary btn-sm" id="nextBtn" onclick="changePage(1)">
+                Next <i class="bi bi-chevron-right ms-1"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Feature Inspector Modal -->
+<div class="modal fade" id="featureModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content glass-card bg-dark border-secondary text-white">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title fw-bold d-flex align-items-center" id="modalTitle">
+                    <i class="bi bi-shield-inspection text-primary me-2"></i> Sample Feature Inspector
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Populated dynamically -->
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Embed data passed from backend
+    const rawData = {{ dataset_json | safe }};
+    let filteredData = [...rawData];
+    let currentPage = 1;
+    const pageSize = 15;
+
+    // Chart Initializations
+    document.addEventListener("DOMContentLoaded", function() {
+        initCharts();
+        renderTable();
+
+        document.getElementById('searchInput').addEventListener('input', applyFilters);
+        document.getElementById('threatFilter').addEventListener('change', applyFilters);
+        document.getElementById('accountTypeFilter').addEventListener('change', applyFilters);
+    });
+
+    function initCharts() {
+        // Threat Breakdown Chart
+        const botThreats = rawData.filter(d => d['Account.Type'] === 'bot' && d.is_threat === 1).length;
+        const indThreats = rawData.filter(d => d['Account.Type'] === 'individual' && d.is_threat === 1).length;
+        const orgThreats = rawData.filter(d => d['Account.Type'] === 'organisational' && d.is_threat === 1).length;
+        const safeCount = rawData.filter(d => d.is_threat === 0).length;
+
+        const ctx1 = document.getElementById('threatChart').getContext('2d');
+        new Chart(ctx1, {
+            type: 'doughnut',
+            data: {
+                labels: ['Bot Threat', 'Individual Threat', 'Org Threat', 'Legitimate'],
+                datasets: [{
+                    data: [botThreats, indThreats, orgThreats, safeCount],
+                    backgroundColor: ['#ef4444', '#f59e0b', '#8b5cf6', '#10b981'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', labels: { color: '#94a3b8', font: { family: 'Plus Jakarta Sans' } } }
+                }
+            }
+        });
+
+        // Feature Comparison Chart
+        const threatSamples = rawData.filter(d => d.is_threat === 1);
+        const safeSamples = rawData.filter(d => d.is_threat === 0);
+
+        const avgAgeThreat = (threatSamples.reduce((acc, d) => acc + d.account_age_days, 0) / (threatSamples.length || 1)) / 365;
+        const avgAgeSafe = (safeSamples.reduce((acc, d) => acc + d.account_age_days, 0) / (safeSamples.length || 1)) / 365;
+
+        const avgSusThreat = (threatSamples.reduce((acc, d) => acc + d.suspicious_content_score, 0) / (threatSamples.length || 1)) * 100;
+        const avgSusSafe = (safeSamples.reduce((acc, d) => acc + d.suspicious_content_score, 0) / (safeSamples.length || 1)) * 100;
+
+        const avgSpamThreat = (threatSamples.reduce((acc, d) => acc + d.spam_pattern_matches, 0) / (threatSamples.length || 1)) * 10;
+        const avgSpamSafe = (safeSamples.reduce((acc, d) => acc + d.spam_pattern_matches, 0) / (safeSamples.length || 1)) * 10;
+
+        const ctx2 = document.getElementById('featureComparisonChart').getContext('2d');
+        new Chart(ctx2, {
+            type: 'bar',
+            data: {
+                labels: ['Account Age (Years)', 'Sus. Content Score (%)', 'Spam Matches (x10)'],
+                datasets: [
+                    { label: 'Threat Group', data: [avgAgeThreat.toFixed(1), avgSusThreat.toFixed(1), avgSpamThreat.toFixed(1)], backgroundColor: '#ef4444' },
+                    { label: 'Legitimate Group', data: [avgAgeSafe.toFixed(1), avgSusSafe.toFixed(1), avgSpamSafe.toFixed(1)], backgroundColor: '#10b981' }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                    y: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } }
+                },
+                plugins: { legend: { labels: { color: '#94a3b8' } } }
+            }
+        });
+    }
+
+    function applyFilters() {
+        const search = document.getElementById('searchInput').value.toLowerCase();
+        const threatVal = document.getElementById('threatFilter').value;
+        const typeVal = document.getElementById('accountTypeFilter').value;
+
+        filteredData = rawData.filter(item => {
+            const matchesSearch = !search || 
+                (item.Country && String(item.Country).toLowerCase().includes(search)) ||
+                (item.Sentiment && String(item.Sentiment).toLowerCase().includes(search)) ||
+                (item['Account.Type'] && String(item['Account.Type']).toLowerCase().includes(search));
+
+            const matchesThreat = threatVal === 'all' || String(item.is_threat) === threatVal;
+            const matchesType = typeVal === 'all' || item['Account.Type'] === typeVal;
+
+            return matchesSearch && matchesThreat && matchesType;
+        });
+
+        currentPage = 1;
+        renderTable();
+    }
+
+    function renderTable() {
+        const total = filteredData.length;
+        const totalPages = Math.ceil(total / pageSize) || 1;
+        currentPage = Math.max(1, Math.min(currentPage, totalPages));
+
+        const startIdx = (currentPage - 1) * pageSize;
+        const endIdx = Math.min(startIdx + pageSize, total);
+        const pageData = filteredData.slice(startIdx, endIdx);
+
+        const tbody = document.getElementById('tableBody');
+        tbody.innerHTML = '';
+
+        if (pageData.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="9" class="text-center py-4 text-muted">No records matching search filters</td></tr>`;
+        } else {
+            pageData.forEach((row, idx) => {
+                const globalIndex = startIdx + idx + 1;
+                const ratio = parseFloat(row.followers_to_following_ratio || 0).toFixed(2);
+                const isThreat = row.is_threat === 1;
+
+                let accountBadge = `<span class="badge bg-secondary">${row['Account.Type'] || 'N/A'}</span>`;
+                if (row['Account.Type'] === 'bot') accountBadge = `<span class="badge bg-danger bg-opacity-25 text-danger border border-danger border-opacity-25"><i class="bi bi-robot me-1"></i>bot</span>`;
+                else if (row['Account.Type'] === 'organisational') accountBadge = `<span class="badge bg-purple bg-opacity-25 text-info border border-info border-opacity-25"><i class="bi bi-building me-1"></i>org</span>`;
+
+                let threatBadge = isThreat 
+                    ? `<span class="badge gradient-badge-threat"><i class="bi bi-exclamation-triangle-fill me-1"></i>Threat</span>`
+                    : `<span class="badge gradient-badge-safe"><i class="bi bi-shield-check me-1"></i>Legitimate</span>`;
+
+                let defaultImgBadge = row.is_default_image === 1 
+                    ? `<span class="badge bg-warning text-dark">Default</span>`
+                    : `<span class="badge bg-dark border border-secondary text-muted">Custom</span>`;
+
+                const susPercent = Math.min(100, Math.round((row.suspicious_content_score || 0) * 100));
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="fw-bold text-muted">${globalIndex}</td>
+                        <td>${accountBadge}</td>
+                        <td>${row.account_age_days} days</td>
+                        <td>${row.followers_count} / ${row.following_count} <span class="text-muted small">(${ratio}x)</span></td>
+                        <td>${defaultImgBadge}</td>
+                        <td style="width: 140px;">
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="progress flex-grow-1 bg-dark" style="height: 6px;">
+                                    <div class="progress-bar ${susPercent > 50 ? 'bg-danger' : 'bg-info'}" style="width: ${susPercent}%"></div>
+                                </div>
+                                <span class="small">${susPercent}%</span>
+                            </div>
+                        </td>
+                        <td><span class="badge bg-dark border border-secondary">${row.spam_pattern_matches || 0}</span></td>
+                        <td>${threatBadge}</td>
+                        <td class="text-end">
+                            <button class="btn btn-outline-primary btn-sm py-0 px-2" onclick="inspectRow(${startIdx + idx})">
+                                <i class="bi bi-eye me-1"></i> Inspect
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        document.getElementById('paginationInfo').innerText = `Showing ${startIdx + 1} to ${endIdx} of ${total} records`;
+        document.getElementById('showingCount').innerText = `${total} records found`;
+
+        document.getElementById('prevBtn').disabled = currentPage === 1;
+        document.getElementById('nextBtn').disabled = currentPage >= totalPages;
+    }
+
+    function changePage(delta) {
+        currentPage += delta;
+        renderTable();
+    }
+
+    function inspectRow(filteredIdx) {
+        const item = filteredData[filteredIdx];
+        if (!item) return;
+
+        document.getElementById('modalTitle').innerHTML = `<i class="bi bi-shield-inspection text-primary me-2"></i> Sample Record #${filteredIdx + 1} Inspection`;
+
+        let html = `
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <div class="p-3 glass-card border-0 bg-black bg-opacity-25">
+                        <h6 class="fw-bold text-primary mb-3"><i class="bi bi-person-badge me-2"></i> Account Core Metrics</h6>
+                        <ul class="list-unstyled mb-0 small text-slate-300">
+                            <li class="d-flex justify-content-between py-1 border-bottom border-secondary border-opacity-25"><span>Account Type:</span> <strong>${item['Account.Type']}</strong></li>
+                            <li class="d-flex justify-content-between py-1 border-bottom border-secondary border-opacity-25"><span>Account Age:</span> <strong>${item.account_age_days} days</strong></li>
+                            <li class="d-flex justify-content-between py-1 border-bottom border-secondary border-opacity-25"><span>Followers Count:</span> <strong>${item.followers_count}</strong></li>
+                            <li class="d-flex justify-content-between py-1 border-bottom border-secondary border-opacity-25"><span>Following Count:</span> <strong>${item.following_count}</strong></li>
+                            <li class="d-flex justify-content-between py-1 border-bottom border-secondary border-opacity-25"><span>Follower/Following Ratio:</span> <strong>${parseFloat(item.followers_to_following_ratio || 0).toFixed(3)}</strong></li>
+                            <li class="d-flex justify-content-between py-1"><span>Posts Count / Per Day:</span> <strong>${item.posts_count} (${parseFloat(item.posts_per_day || 0).toFixed(2)}/day)</strong></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="p-3 glass-card border-0 bg-black bg-opacity-25">
+                        <h6 class="fw-bold text-info mb-3"><i class="bi bi-chat-left-quote me-2"></i> Content & Activity Features</h6>
+                        <ul class="list-unstyled mb-0 small text-slate-300">
+                            <li class="d-flex justify-content-between py-1 border-bottom border-secondary border-opacity-25"><span>Suspicious Content Score:</span> <strong>${(item.suspicious_content_score * 100).toFixed(1)}%</strong></li>
+                            <li class="d-flex justify-content-between py-1 border-bottom border-secondary border-opacity-25"><span>Spam Pattern Matches:</span> <strong>${item.spam_pattern_matches}</strong></li>
+                            <li class="d-flex justify-content-between py-1 border-bottom border-secondary border-opacity-25"><span>Bio Length / URL:</span> <strong>${item.bio_length} chars (URL: ${item.has_external_url ? 'Yes' : 'No'})</strong></li>
+                            <li class="d-flex justify-content-between py-1 border-bottom border-secondary border-opacity-25"><span>Engagement Rate:</span> <strong>${(item.engagement_rate * 100).toFixed(2)}%</strong></li>
+                            <li class="d-flex justify-content-between py-1 border-bottom border-secondary border-opacity-25"><span>Default Profile Image:</span> <strong>${item.is_default_image ? 'Yes' : 'No'}</strong></li>
+                            <li class="d-flex justify-content-between py-1"><span>AI Image Generated:</span> <strong>${item.is_ai_generated ? 'Yes' : 'No'}</strong></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <div class="p-3 glass-card border-0 bg-black bg-opacity-25">
+                        <h6 class="fw-bold text-warning mb-3"><i class="bi bi-tag me-2"></i> Spam Identifier Categoricals & Word Counts</h6>
+                        <div class="row g-2 small">
+                            <div class="col-md-4">Country: <strong>${item.Country || 'N/A'}</strong></div>
+                            <div class="col-md-4">Gender: <strong>${item.Gender || 'N/A'}</strong></div>
+                            <div class="col-md-4">Twitter Verified: <strong>${item['Twitter.Verified'] || 'no'}</strong></div>
+                            <div class="col-md-4">word_sex count: <strong>${item.word_sex || 0}</strong></div>
+                            <div class="col-md-4">word_good count: <strong>${item.word_good || 0}</strong></div>
+                            <div class="col-md-4">word_woman count: <strong>${item.word_woman || 0}</strong></div>
+                            <div class="col-md-4">links_twitter: <strong>${item.links_twitter || 0}</strong></div>
+                            <div class="col-md-4">links_youtube: <strong>${item.links_youtube || 0}</strong></div>
+                            <div class="col-md-4">links_other: <strong>${item.links_other || 0}</strong></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.getElementById('modalBody').innerHTML = html;
+        const modal = new bootstrap.Modal(document.getElementById('featureModal'));
+        modal.show();
+    }
+
+    function exportFilteredData() {
+        if (filteredData.length === 0) return alert("No data available to export");
+        const headers = Object.keys(filteredData[0]).join(",");
+        const rows = filteredData.map(row => Object.values(row).map(v => `"${v}"`).join(","));
+        const csvContent = "data:text/csv;charset=utf-8," + [headers, ...rows].join("\n");
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", "threat_dataset_export.csv");
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+</script>
+{% endblock %}

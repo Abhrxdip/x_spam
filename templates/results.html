@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+
+{% block title %}Analysis Results | Unified Threat Detector{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+    <div>
+        <h2 class="fw-bold mb-1 gradient-text">
+            <i class="bi bi-shield-check me-2"></i>Profile Analysis Results
+        </h2>
+        <p class="text-muted mb-0">Analysis generated on {{ timestamp }}</p>
+    </div>
+    <a href="{{ url_for('index') }}" class="btn btn-outline-light">
+        <i class="bi bi-arrow-left me-1"></i> New Profile Analysis
+    </a>
+</div>
+
+{% if report %}
+<!-- Top Risk Overview Cards -->
+<div class="row g-4 mb-4">
+    <div class="col-md-4">
+        <div class="glass-card p-4 text-center h-100 position-relative overflow-hidden">
+            <div class="stat-icon-wrapper mx-auto mb-3 bg-{{ report.analysis.risk_color }} bg-opacity-25 text-{{ report.analysis.risk_color }}" style="width: 60px; height: 60px; font-size: 2rem;">
+                {% if report.analysis.is_threat %}
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                {% else %}
+                    <i class="bi bi-check-circle-fill"></i>
+                {% endif %}
+            </div>
+            <h3 class="fw-bold text-white mb-1">{{ report.analysis.threat_type_display }}</h3>
+            <div class="text-muted small mb-3">Threat Classification</div>
+            <span class="badge px-3 py-2 rounded-pill {% if report.analysis.is_threat %}gradient-badge-threat{% else %}gradient-badge-safe{% endif %} fs-6">
+                {{ report.analysis.risk_level|upper }} RISK
+            </span>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="glass-card p-4 text-center h-100">
+            <div class="display-4 fw-extrabold text-{{ report.analysis.risk_color }} mb-2">
+                {{ report.analysis.probability_percent }}
+            </div>
+            <div class="text-muted small mb-3">AI Model Threat Probability Score</div>
+            <div class="progress bg-dark border border-secondary border-opacity-25" style="height: 12px; border-radius: 6px;">
+                <div class="progress-bar bg-{{ report.analysis.risk_color }}" role="progressbar" style="width: {{ report.analysis.probability_percent }}"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="glass-card p-4 h-100">
+            <h5 class="fw-bold text-white mb-3 d-flex align-items-center">
+                <i class="bi bi-person-circle me-2 text-primary"></i> Target Profile
+            </h5>
+            <h4 class="fw-bold mb-1 text-info">@{{ report.profile.username }}</h4>
+            <div class="badge bg-secondary mb-3">{{ report.profile.platform|upper }}</div>
+            <div class="row text-center g-2 pt-2 border-top border-secondary border-opacity-25">
+                <div class="col-4">
+                    <div class="fw-bold text-white">{{ report.profile.followers_count|int }}</div>
+                    <div class="text-muted small">Followers</div>
+                </div>
+                <div class="col-4">
+                    <div class="fw-bold text-white">{{ report.profile.following_count|int }}</div>
+                    <div class="text-muted small">Following</div>
+                </div>
+                <div class="col-4">
+                    <div class="fw-bold text-white">{{ report.profile.posts_count|int }}</div>
+                    <div class="text-muted small">Posts</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Analysis Summary -->
+<div class="glass-card p-4 mb-4">
+    <h5 class="fw-bold text-white mb-3 d-flex align-items-center">
+        <i class="bi bi-file-earmark-text text-warning me-2"></i> Executive Summary
+    </h5>
+    <p class="lead text-slate-200 mb-3">{{ report.summary }}</p>
+    <div class="d-flex flex-wrap justify-content-between text-muted small pt-2 border-top border-secondary border-opacity-25">
+        <span><i class="bi bi-cpu me-1"></i> ML Classifier Model: <strong>{{ report.analysis.model_used }}</strong></span>
+        <span><i class="bi bi-clock me-1"></i> Timestamp: <strong>{{ report.analysis.timestamp }}</strong></span>
+    </div>
+</div>
+
+<!-- Suspicious Indicators -->
+{% if report.indicators %}
+<div class="glass-card p-4 mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="fw-bold text-white mb-0 d-flex align-items-center">
+            <i class="bi bi-flag-fill text-danger me-2"></i> Detected Suspicious Indicators
+        </h5>
+        <span class="badge bg-danger bg-opacity-25 text-danger border border-danger border-opacity-25 px-3 py-2">
+            {{ report.indicators|length }} Indicators Detected
+        </span>
+    </div>
+    <div class="row g-3">
+        {% for indicator in report.indicators %}
+        <div class="col-md-6">
+            <div class="p-3 glass-card border-0 bg-black bg-opacity-20 h-100">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                        <h6 class="fw-bold text-white mb-1">{{ indicator.description }}</h6>
+                        <span class="text-muted small">{{ indicator.type.replace('_', ' ').title() }}</span>
+                    </div>
+                    <span class="badge bg-{{ indicator.severity_class }}">{{ indicator.severity|upper }}</span>
+                </div>
+                {% if indicator.value != '' and indicator.value != 1 %}
+                <div class="text-muted small">Value Metric: <strong>{{ indicator.value }}</strong></div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Top Contributing Features -->
+{% if report.feature_importance %}
+<div class="glass-card p-4 mb-4">
+    <h5 class="fw-bold text-white mb-3 d-flex align-items-center">
+        <i class="bi bi-bar-chart-line text-purple me-2"></i> Top Feature Weight Contributions
+    </h5>
+    <div class="row g-3">
+        {% for feature in report.feature_importance %}
+        <div class="col-md-6">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="text-slate-300 small">{{ feature.name }}</span>
+                <span class="badge bg-dark border border-secondary text-info">{{ feature.percentage }}</span>
+            </div>
+            <div class="progress bg-dark" style="height: 8px;">
+                <div class="progress-bar bg-info" style="width: {{ feature.percentage }}" role="progressbar"></div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Recommendations -->
+{% if report.recommendations %}
+<div class="glass-card p-4 mb-4">
+    <h5 class="fw-bold text-white mb-3 d-flex align-items-center">
+        <i class="bi bi-lightbulb-fill text-yellow me-2"></i> Security Analyst Recommendations
+    </h5>
+    <ul class="list-group list-group-flush bg-transparent">
+        {% for rec in report.recommendations %}
+        <li class="list-group-item bg-transparent text-slate-300 border-secondary border-opacity-25 d-flex align-items-start py-2">
+            <i class="bi bi-check2-circle text-success me-2 mt-1"></i>
+            <div>{{ rec }}</div>
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+{% else %}
+<div class="glass-card p-5 text-center my-5">
+    <i class="bi bi-exclamation-circle display-1 text-warning mb-3"></i>
+    <h3 class="fw-bold text-white">No Analysis Data Available</h3>
+    <p class="text-muted">Please analyze a profile first.</p>
+    <a href="{{ url_for('index') }}" class="btn btn-primary">Analyze a Profile</a>
+</div>
+{% endif %}
+
+{% endblock %}

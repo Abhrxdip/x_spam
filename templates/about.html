@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About - Unified Threat Detector</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="{{ url_for('index') }}">
+                <i class="bi bi-shield-check me-2"></i>Unified Threat Detector
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="{{ url_for('index') }}">Home</a>
+                <a class="nav-link" href="{{ url_for('batch_analysis') }}">Batch Analysis</a>
+                <a class="nav-link" href="{{ url_for('model_info') }}">Model Info</a>
+                <a class="nav-link" href="{{ url_for('train_model') }}">Train Model</a>
+                <a class="nav-link" href="{{ url_for('about') }}">About</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container py-5">
+        <div class="row">
+            <div class="col-lg-8 mx-auto">
+                <h1 class="mb-4">About Unified Social Media Threat Detector</h1>
+                
+                <div class="card shadow-sm mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="bi bi-info-circle me-2"></i>Project Overview</h5>
+                        <p class="card-text">
+                            The Unified Social Media Threat Detector is an AI-powered system designed to detect 
+                            fake profiles, spam accounts, scams, and automated bots across social media platforms 
+                            (Twitter/X, Instagram, Facebook). It combines multi-modal analysis of content, 
+                            activity patterns, network relationships, and profile images into a unified 
+                            detection framework with explainable risk scoring.
+                        </p>
+                        <p class="card-text">
+                            This project was developed for the Smart India Hackathon (SIH) 2026 under the 
+                            theme "Cybersecurity / Digital Trust and Safety" as part of the 
+                            <strong>Adaptive Social Engineering Defense Framework (ASEDF)</strong>.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="card shadow-sm mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="bi bi-cpu me-2"></i>Technical Approach</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Analysis Modules</h6>
+                                <ul>
+                                    <li><strong>Content Analyzer:</strong> Suspicious keywords, spam patterns, sentiment analysis, content diversity</li>
+                                    <li><strong>Activity Analyzer:</strong> Posting frequency, engagement rates, temporal patterns, regularity</li>
+                                    <li><strong>Network Analyzer:</strong> Follower/following ratios, mutual connections, reciprocity, isolation</li>
+                                    <li><strong>Image Analyzer:</strong> Default images, stock photos, AI-generated face detection</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Machine Learning</h6>
+                                <ul>
+                                    <li><strong>Models Compared:</strong> Random Forest, Gradient Boosting, Logistic Regression, Neural Network, SVM, Naive Bayes, KNN, Decision Tree</li>
+                                    <li><strong>Features:</strong> 30+ behavioral, content, network, and image features</li>
+                                    <li><strong>Training:</strong> Cross-validation, hyperparameter tuning, synthetic + real data</li>
+                                    <li><strong>Explainability:</strong> Feature importance, indicator-based reasoning, actionable recommendations</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card shadow-sm mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="bi bi-graph-up me-2"></i>Key Features</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <ul>
+                                    <li>Multi-platform support (Twitter/X, Instagram, Facebook)</li>
+                                    <li>Real-time single profile analysis</li>
+                                    <li>Batch processing via CSV/JSON upload</li>
+                                    <li>RESTful API for integration</li>
+                                    <li>Explainable risk scores with indicators</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <ul>
+                                    <li>Threat classification (fake, spam, scam, bot)</li>
+                                    <li>Model training and retraining interface</li>
+                                    <li>Model performance monitoring</li>
+                                    <li>Responsive web interface</li>
+                                    <li>Comprehensive logging and audit trail</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card shadow-sm mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="bi bi-code-slash me-2"></i>Technology Stack</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Backend</h6>
+                                <ul>
+                                    <li>Python 3.9+</li>
+                                    <li>Flask 2.3</li>
+                                    <li>scikit-learn 1.3</li>
+                                    <li>pandas, numpy</li>
+                                    <li>joblib (model persistence)</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Frontend</h6>
+                                <ul>
+                                    <li>Bootstrap 5.3</li>
+                                    <li>Bootstrap Icons</li>
+                                    <li>Vanilla JavaScript</li>
+                                    <li>Jinja2 Templates</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="bi bi-people me-2"></i>Team & Credits</h5>
+                        <p>Developed for SIH 2026 - Adaptive Social Engineering Defense Framework</p>
+                        <p class="text-muted small">
+                            Combines approaches from fake-profile-detector (Flask web app, multi-analyzer architecture) 
+                            and spam_identifier (advanced ML models, feature engineering, spam detection).
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-dark text-white py-3 mt-5">
+        <div class="container text-center">
+            <p class="mb-0 small">Unified Social Media Threat Detector &copy; 2024</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
