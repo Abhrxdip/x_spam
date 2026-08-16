@@ -173,20 +173,29 @@ Trained and evaluated on **2,102 strictly balanced real-world profiles** (1,051 
 ---
 
 ### 5️⃣ Phase 5: Explainable AI (XAI) Forensic Engine
-*File: `src/detector.py`*
+*Files: `src/xai/shap_explainer.py`, `src/xai/counterfactual.py`, `src/xai/nlp_saliency.py`, `src/xai/lime_explainer.py`*
 
-Rather than acting as an opaque black box, ASEDF generates an **Explainable AI (XAI) Forensic Dossier** for every analysis:
+Rather than acting as an opaque black box, ASEDF implements a **4-Layer Explainable AI Subsystem**:
 
-1. **"Why This Decision Was Made" Reasoning Engine**:
-   - Explicitly explains the semantic, behavioral, and structural factors triggering the classification.
-   - *Example (High Risk / Spam)*: *"DistilBERT flagged 94.2% match for crypto giveaway phishing; 75% of posts contain external redirects; Following accounts outnumber followers by 120x."*
-   - *Example (Low Risk / Safe)*: *"Account exhibits 1,240 days of organic longevity; DistilBERT threat confidence is < 1.0%; Follower-to-following ratio reflects authentic social interaction."*
-2. **Multi-Modal Feature Matrix Grid**:
-   - Displays exact quantitative values for Account Age, Follower Ratio, DistilBERT Threat Score, Spam Pattern Matches, Link Ratio, Mention Ratio, and Duplicate Text Ratio.
-3. **Actionable Incident Recommendations**:
-   - Generates automated SOC containment steps (e.g. block external redirect domains, report botnet cluster to Trust & Safety, flag for credential reset).
-  - `unverified_high_followers`: *"High follower count without official platform verification"*
-  - `new_account`: *"Account created less than 30 days ago"*
+```
+ ┌─────────────────────────────────────────────────────────────────────────────┐
+ │ 1. SHAP & Permutation Attribution Engine                                    │
+ │    • Decomposes: Baseline (50%) ──► Feature Shifts ──► Final Score (89.8%)  │
+ │    • Signed contributions: e.g. Link Ratio (+19.6%), Age (-2.6%)           │
+ ├─────────────────────────────────────────────────────────────────────────────┤
+ │ 2. Counterfactual Remediation Engine ("What-If" Analysis)                   │
+ │    • Computes minimal changes required to flip threat score to SAFE (<40%)  │
+ │    • e.g. "Reduce external links to <20% and age account past 90 days"      │
+ ├─────────────────────────────────────────────────────────────────────────────┤
+ │ 3. DistilBERT Token-Level Saliency Heatmap                                  │
+ │    • Extracts real-time Transformer attention weights from the last layer   │
+ │    • Generates visual color heatmaps on suspicious tweet words              │
+ ├─────────────────────────────────────────────────────────────────────────────┤
+ │ 4. LIME Cross-Verification & Consensus                                      │
+ │    • Independent local linear surrogate cross-verifies SHAP stability       │
+ │    • Computes XAI Consensus Score (HIGH / MODERATE / LOW)                   │
+ └─────────────────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
@@ -194,8 +203,8 @@ Rather than acting as an opaque black box, ASEDF generates an **Explainable AI (
 *Files: `app.py`, `templates/`*
 
 The platform provides a modern, responsive Glassmorphism dashboard:
-- **Risk Assessment (`/results`)**: Dynamic threat gauge, breakdown metrics, timeline inspector, and security analyst remediation guidance.
-- **Data Explorer (`/data-explorer`)**: Live interactive table exploring 5,000+ benchmark profiles with Chart.js distribution charts, feature modals, and CSV export.
+- **Risk Assessment & XAI Dossier (`/results`)**: Dynamic threat gauge, SHAP waterfall chart, counterfactual remediation panel, DistilBERT token heatmap, and SOC analyst containment steps.
+- **Data Explorer (`/data-explorer`)**: Live interactive table exploring benchmark profiles with Chart.js distribution charts, feature modals, and CSV export.
 - **Model Leaderboard (`/model-info`)**: Real-time evaluation matrix comparing all 13 algorithms across Accuracy, Precision, Recall, F1, and ROC-AUC.
 - **Batch Processing (`/batch`)**: Upload CSV or JSON files to scan hundreds of profiles in bulk.
 - **REST API (`/api/analyze`)**: Headless JSON interface for SIEM and SOC automation.
@@ -204,19 +213,23 @@ The platform provides a modern, responsive Glassmorphism dashboard:
 
 ## 📐 Mathematical & Algorithmic Foundations
 
-### 1. Posting Regularity (Coefficient of Variation)
+### 1. Cooperative Game Theory (Shapley Value Attribution)
+$$\phi_i(v) = \sum_{S \subseteq N \setminus \{i\}} \frac{|S|!(|N| - |S| - 1)!}{|N|!} (v(S \cup \{i\}) - v(S))$$
+*Calculates the exact marginal contribution of feature $i$ across all possible feature subsets $S$.*
+
+### 2. Posting Regularity (Coefficient of Variation)
 Automated bots often post at rigid, mechanical time intervals, whereas human posting behavior displays natural variance.
 $$\Delta t_i = t_{i+1} - t_i$$
 $$\mu_{\Delta t} = \frac{1}{N-1}\sum_{i=1}^{N-1} \Delta t_i, \quad \sigma_{\Delta t} = \sqrt{\frac{1}{N-1}\sum_{i=1}^{N-1}(\Delta t_i - \mu_{\Delta t})^2}$$
 $$CV = \frac{\sigma_{\Delta t}}{\mu_{\Delta t}}, \quad \text{Regularity Score} = \max\left(0, 1 - \min(1, CV)\right)$$
 *A Regularity Score close to 1 indicates robotic periodicity.*
 
-### 2. Lexical Diversity (Type-Token Ratio)
+### 3. Lexical Diversity (Type-Token Ratio)
 Spam bots repeatedly post limited vocabularies or duplicate phrases.
 $$\text{Diversity} = \frac{|U_{\text{words}}|}{|T_{\text{words}}|}$$
 *where $U_{\text{words}}$ is the set of unique words and $T_{\text{words}}$ is the total word count.*
 
-### 3. Network Isolation Index
+### 4. Network Isolation Index
 Measures how disconnected an account is from organic two-way follow relationships.
 $$\text{Ratio} = \frac{\text{Followers}}{\text{Following} + 1}$$
 $$\text{Isolation Score} = \begin{cases} 
@@ -231,23 +244,27 @@ $$\text{Isolation Score} = \begin{cases}
 
 | Feature Domain | Implemented Capability | Source File | Status |
 |---|---|---|---|
-| **Data Ingestion** | Live X/Twitter Guest-Token GraphQL Ingestion | `src/utils/data_processor.py` | ✅ Production Ready |
+| **Data Ingestion** | Live X/Twitter Guest-Token GraphQL Ingestion (No API Key Required) | `src/utils/data_processor.py` | ✅ Production Ready |
 | **Data Ingestion** | Official X API v2 Bearer Token Hook | `src/utils/data_processor.py` | ✅ Production Ready |
-| **Data Ingestion** | Deterministic Seeded Fallback Engine | `src/utils/data_processor.py` | ✅ Production Ready |
-| **NLP AI** | Fine-Tuned DistilBERT Social Engineering Classifier | `src/features/nlp_classifier.py` | ✅ 97.5% Accuracy |
+| **Data Ingestion** | Multi-Benchmark Ingestor (`Botwiki`, `Cresci`, `TwiBot-20/22`) | `scripts/build_real_benchmark_dataset.py` | ✅ Production Ready |
+| **NLP AI** | Fine-Tuned DistilBERT Social Engineering Classifier (5 Classes) | `src/features/nlp_classifier.py` | ✅ 97.5% Accuracy |
 | **NLP AI** | Automated DistilBERT Fine-Tuning Pipeline | `scripts/finetune_nlp.py` | ✅ Production Ready |
 | **Feature Engine** | 44-Feature Multi-Modal Extraction Engine | `src/features/feature_extractor.py` | ✅ Production Ready |
 | **Feature Engine** | Mention & Tagging Spam Detection Engine | `src/features/feature_extractor.py` | ✅ Production Ready |
 | **Feature Engine** | Phishing URL & Shortener Scanner (`bit.ly`, `t.me`) | `src/features/feature_extractor.py` | ✅ Production Ready |
 | **Machine Learning** | 13 ML Classifier Training & Evaluation Suite | `src/models/train_model.py` | ✅ Production Ready |
-| **Machine Learning** | HistGradientBoosting Champion Model Inference | `src/detector.py` | ✅ 98.9% Accuracy |
-| **Explainable AI** | Rule & Feature-Based Threat Indicator Badging | `src/detector.py` | ✅ Production Ready |
+| **Machine Learning** | AdaBoost Ensemble Champion Model | `src/detector.py` | ✅ 89.8% Balanced Acc |
+| **Explainable AI** | SHAP / Permutation Attribution Decomposition | `src/xai/shap_explainer.py` | ✅ Production Ready |
+| **Explainable AI** | Counterfactual Remediation Engine ("What-If") | `src/xai/counterfactual.py` | ✅ Production Ready |
+| **Explainable AI** | DistilBERT Token Saliency Attention Heatmap | `src/xai/nlp_saliency.py` | ✅ Production Ready |
+| **Explainable AI** | LIME Local Surrogate Cross-Verification | `src/xai/lime_explainer.py` | ✅ Production Ready |
 | **Web Interface** | Real-Time URL / Username Threat Analyzer | `app.py`, `templates/index.html` | ✅ Production Ready |
-| **Web Interface** | Forensic Threat Report with Visual Gauges | `templates/results.html` | ✅ Production Ready |
+| **Web Interface** | Forensic Threat Report with Visual Gauges & XAI Dossier | `templates/results.html` | ✅ Production Ready |
 | **Web Interface** | 5,000+ Record Dataset Explorer & Chart.js Hub | `templates/data_explorer.html` | ✅ Production Ready |
 | **Web Interface** | 13-Model Benchmark Comparison Leaderboard | `templates/model_info.html` | ✅ Production Ready |
 | **Web Interface** | Batch CSV / JSON Threat Processing Portal | `templates/batch.html` | ✅ Production Ready |
 | **Integration** | REST API Endpoint (`/api/analyze`) | `app.py` | ✅ Production Ready |
+
 
 ---
 
