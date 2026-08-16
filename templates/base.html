@@ -152,6 +152,9 @@
                     <a class="nav-link {% if request.endpoint == 'index' %}active{% endif %}" href="{{ url_for('index') }}">
                         <i class="bi bi-house-door me-1"></i> Home
                     </a>
+                    <a class="nav-link {% if request.endpoint == 'stream' %}active{% endif %}" href="{{ url_for('stream') }}">
+                        <span class="badge bg-danger rounded-pill px-2 py-1 me-1"><i class="bi bi-broadcast me-1"></i>LIVE</span> Firehose
+                    </a>
                     <a class="nav-link {% if request.endpoint == 'data_explorer' %}active{% endif %}" href="{{ url_for('data_explorer') }}">
                         <i class="bi bi-database-check me-1"></i> Data Explorer
                     </a>

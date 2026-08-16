@@ -25,11 +25,14 @@
                 <a href="#analyze" class="btn btn-primary btn-lg px-4 shadow">
                     <i class="bi bi-search me-2"></i>Analyze Profile
                 </a>
+                <a href="{{ url_for('stream') }}" class="btn btn-danger btn-lg px-4 shadow">
+                    <i class="bi bi-broadcast me-2"></i>Live Stream Firehose
+                </a>
                 <a href="{{ url_for('data_explorer') }}" class="btn btn-outline-info btn-lg px-4">
-                    <i class="bi bi-database-check me-2"></i>Explore Dataset (50,000+ Records)
+                    <i class="bi bi-database-check me-2"></i>Explore Dataset (50k)
                 </a>
                 <a href="{{ url_for('batch_analysis') }}" class="btn btn-outline-light btn-lg px-4">
-                    <i class="bi bi-layers me-2"></i>Batch File Upload
+                    <i class="bi bi-layers me-2"></i>Batch Upload
                 </a>
             </div>
         </div>
