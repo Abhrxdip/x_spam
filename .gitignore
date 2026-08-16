@@ -33,6 +33,9 @@ ENV/
 # Logs & Temporary files
 *.log
 app.log
+checkpoints/
+*/checkpoints/
+models/nlp_classifier/model.safetensors
 
 # Environment variables
 .env

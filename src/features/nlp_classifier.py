@@ -110,9 +110,11 @@ class SocialEngineeringClassifier:
                 DistilBertForSequenceClassification,
             )
             logger.info("Loading fine-tuned DistilBERT from %s ...", self.model_dir)
-            self.tokenizer = DistilBertTokenizerFast.from_pretrained(self.model_dir)
+            self.tokenizer = DistilBertTokenizerFast.from_pretrained(
+                self.model_dir, local_files_only=True
+            )
             self.model = DistilBertForSequenceClassification.from_pretrained(
-                self.model_dir
+                self.model_dir, local_files_only=True
             )
             self.model.eval()
             self._loaded = True

@@ -422,26 +422,28 @@ def finetune():
         num_labels=NUM_LABELS,
         id2label=ID2LABEL,
         label2id=LABEL2ID,
+        ignore_mismatched_sizes=True,   # expected: new classifier head replaces MLM head
     )
 
-    # ── Training arguments ────────────────────────────────────────────────────
+    # ── Training arguments (version-safe) ────────────────────────────────────
     os.makedirs(MODEL_SAVE_DIR, exist_ok=True)
+
     training_args = TrainingArguments(
         output_dir=os.path.join(MODEL_SAVE_DIR, "checkpoints"),
-        num_train_epochs=5,
+        num_train_epochs=6,
         per_device_train_batch_size=16,
         per_device_eval_batch_size=32,
-        warmup_ratio=0.1,
+        warmup_steps=15,           # universal — works across all transformers versions
         weight_decay=0.01,
         learning_rate=3e-5,
-        eval_strategy="epoch",
+        eval_strategy="epoch",     # transformers >= 4.41 / 5.x uses eval_strategy
         save_strategy="epoch",
         load_best_model_at_end=True,
         metric_for_best_model="f1_macro",
         greater_is_better=True,
-        logging_steps=20,
+        logging_steps=10,
         report_to="none",
-        fp16=False,   # CPU-safe
+        fp16=False,                # CPU-safe
         dataloader_num_workers=0,
     )
 
@@ -459,13 +461,18 @@ def finetune():
         }
 
     # ── Trainer ───────────────────────────────────────────────────────────────
+    # transformers 5.x renamed `tokenizer` → `processing_class` in Trainer
+    import inspect as _inspect
+    _trainer_params = set(_inspect.signature(Trainer.__init__).parameters)
+    _tok_kwarg = "processing_class" if "processing_class" in _trainer_params else "tokenizer"
+
     data_collator = DataCollatorWithPadding(tokenizer=tokenizer)
     trainer = Trainer(
         model=model,
         args=training_args,
         train_dataset=train_ds,
         eval_dataset=val_ds,
-        tokenizer=tokenizer,
+        **{_tok_kwarg: tokenizer},
         data_collator=data_collator,
         compute_metrics=compute_metrics,
     )

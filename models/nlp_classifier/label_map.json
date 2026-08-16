@@ -1,0 +1,16 @@
+{
+  "id2label": {
+    "0": "legitimate",
+    "1": "crypto_scam",
+    "2": "phishing",
+    "3": "mention_spam",
+    "4": "social_engineering"
+  },
+  "label2id": {
+    "legitimate": 0,
+    "crypto_scam": 1,
+    "phishing": 2,
+    "mention_spam": 3,
+    "social_engineering": 4
+  }
+}

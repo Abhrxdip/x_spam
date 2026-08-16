@@ -28,6 +28,7 @@ Social media platforms are increasingly exploited by malicious actors running **
 | Feature | Status | Description |
 |---------|--------|-------------|
 | Live X/Twitter Profile Fetch | ✅ Working | Fetches real-time data via Twitter's internal GraphQL API (guest token, no API key needed) |
+| Fine-Tuned DistilBERT NLP Engine | ✅ Working | Domain-fine-tuned DistilBERT on social engineering corpus (**97.5% Accuracy**, 5 Threat Classes) |
 | 44-Feature Multi-Modal Extraction | ✅ Working | Account metrics, NLP content, timeline analysis, network signals, image signals |
 | ML Threat Classification | ✅ Working | 13-model comparison; HistGradientBoosting champion — 98.9% accuracy, 0.997 ROC-AUC |
 | Explainable AI (XAI) Indicators | ✅ Working | Human-readable threat evidence with severity badges |
