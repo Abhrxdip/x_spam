@@ -1,5 +1,5 @@
-# Python 3.12 slim base
-FROM python:3.12-slim
+# Python 3.11 slim base (optimal wheel compatibility)
+FROM python:3.11-slim
 
 # Set working directory
 WORKDIR /app
@@ -10,10 +10,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements and install
+# Upgrade pip
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel
+
+# Copy requirements and install CPU-optimized packages
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-RUN pip install --no-cache-dir shap lime gunicorn
 
 # Copy application source
 COPY . .
@@ -28,4 +30,3 @@ EXPOSE 5000
 
 # Start server using Gunicorn (dynamically binds to Render $PORT)
 CMD ["sh", "-c", "gunicorn app:app --timeout 120 --workers 2 --bind 0.0.0.0:${PORT:-5000}"]
-
