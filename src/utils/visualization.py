@@ -103,7 +103,8 @@ def generate_report(result: Dict[str, Any], profile_data: Dict[str, Any]) -> Dic
         'indicators': formatted_indicators,
         'feature_importance': formatted_features,
         'recommendations': result.get('recommendations', []),
-        'summary': generate_summary(result, profile_data)
+        'summary': generate_summary(result, profile_data),
+        'xai_report': result.get('xai_report', {}),
     }
     
     return report

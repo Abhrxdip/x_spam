@@ -122,11 +122,302 @@
 </div>
 {% endif %}
 
-<!-- Top Contributing Features -->
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<!-- XAI FORENSIC DOSSIER                                                        -->
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+{% set xai = report.xai_report %}
+{% if xai and xai.shap %}
+
+<!-- XAI Header Banner -->
+<div class="glass-card p-3 mb-4 d-flex align-items-center gap-3"
+    style="background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(168,85,247,0.10)); border: 1px solid rgba(99,102,241,0.3);">
+    <div style="font-size:2rem;">🧠</div>
+    <div>
+        <h5 class="fw-bold text-white mb-0">Explainable AI (XAI) Forensic Dossier</h5>
+        <p class="text-muted small mb-0">
+            Game-theoretic Shapley attribution · LIME cross-verification ·
+            Counterfactual remediation · DistilBERT token saliency
+        </p>
+    </div>
+    {% if xai.consensus %}
+    <div class="ms-auto text-end">
+        <span class="badge bg-{{ xai.consensus.consensus_color }} bg-opacity-25
+                     text-{{ xai.consensus.consensus_color }}
+                     border border-{{ xai.consensus.consensus_color }} border-opacity-50 px-3 py-2">
+            <i class="bi bi-patch-check me-1"></i>
+            XAI Consensus: {{ xai.consensus.consensus_level }}
+            ({{ xai.consensus.agreement_pct }}%)
+        </span>
+    </div>
+    {% endif %}
+</div>
+
+<!-- ─── Panel 1: SHAP Waterfall ──────────────────────────────────────────── -->
+<div class="glass-card p-4 mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="fw-bold text-white mb-0 d-flex align-items-center">
+            <i class="bi bi-bar-chart-steps me-2" style="color:#818cf8;"></i>
+            SHAP Waterfall — Per-Feature Threat Attribution
+        </h5>
+        <span class="badge bg-dark border border-secondary text-secondary small">
+            Method: {{ xai.shap.method | upper }}
+        </span>
+    </div>
+    <p class="text-muted small mb-3">
+        Each bar shows exactly how many percentage points a feature <strong class="text-danger">pushed the score UP (threat)</strong>
+        or <strong class="text-success">pulled it DOWN (safe)</strong>.
+        Sum of all bars + {{ xai.shap.baseline }}% baseline = {{ xai.shap.final_score }}% final score.
+    </p>
+
+    <!-- Baseline → Final decomposition -->
+    <div class="d-flex align-items-center gap-2 mb-4 p-3 rounded"
+        style="background:rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);">
+        <div class="text-center px-3">
+            <div class="fw-bold text-muted" style="font-size:0.75rem;">BASELINE</div>
+            <div class="fw-bold text-white fs-5">{{ xai.shap.baseline }}%</div>
+        </div>
+        <div class="flex-grow-1 text-center text-muted">→ feature contributions →</div>
+        <div class="text-center px-3">
+            <div class="fw-bold text-muted" style="font-size:0.75rem;">FINAL SCORE</div>
+            <div class="fw-bold fs-5 {% if xai.shap.final_score >= 70 %}text-danger{% elif xai.shap.final_score >= 40 %}text-warning{% else %}text-success{% endif %}">
+                {{ xai.shap.final_score }}%
+            </div>
+        </div>
+    </div>
+
+    <!-- Threat amplifiers -->
+    {% if xai.shap.top_threats %}
+    <h6 class="text-danger mb-2"><i class="bi bi-arrow-up-circle-fill me-1"></i> Threat Amplifiers</h6>
+    <div class="row g-2 mb-4">
+        {% for c in xai.shap.top_threats %}
+        <div class="col-12">
+            <div class="d-flex align-items-center gap-2">
+                <div class="text-end" style="min-width:180px; font-size:0.82rem;" class="text-slate-300">
+                    {{ c.label }}
+                </div>
+                <div class="flex-grow-1 position-relative" style="height:22px;">
+                    <div class="position-absolute top-0 start-0 h-100 rounded"
+                        style="width:{{ [c.abs_value * 200, 100]|min }}%;
+                               background: linear-gradient(90deg, #ff1744, #ff6d00);
+                               opacity:0.85; min-width:4px;"></div>
+                </div>
+                <span class="badge text-danger border border-danger border-opacity-25 bg-danger bg-opacity-10"
+                    style="min-width:60px;">+{{ c.pct }}%</span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Safety anchors -->
+    {% if xai.shap.top_safe %}
+    <h6 class="text-success mb-2"><i class="bi bi-arrow-down-circle-fill me-1"></i> Safety Anchors</h6>
+    <div class="row g-2">
+        {% for c in xai.shap.top_safe %}
+        <div class="col-12">
+            <div class="d-flex align-items-center gap-2">
+                <div class="text-end" style="min-width:180px; font-size:0.82rem;" class="text-slate-300">
+                    {{ c.label }}
+                </div>
+                <div class="flex-grow-1 position-relative" style="height:22px;">
+                    <div class="position-absolute top-0 start-0 h-100 rounded"
+                        style="width:{{ [c.abs_value * 200, 100]|min }}%;
+                               background: linear-gradient(90deg, #00e676, #00bfa5);
+                               opacity:0.75; min-width:4px;"></div>
+                </div>
+                <span class="badge text-success border border-success border-opacity-25 bg-success bg-opacity-10"
+                    style="min-width:60px;">{{ c.pct }}%</span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+
+<!-- ─── Panel 2: Counterfactual What-If ─────────────────────────────────── -->
+{% if xai.counterfactual %}
+{% set cf = xai.counterfactual %}
+<div class="glass-card p-4 mb-4">
+    <h5 class="fw-bold text-white mb-3 d-flex align-items-center">
+        <i class="bi bi-lightning-charge-fill me-2" style="color:#fbbf24;"></i>
+        Counterfactual Remediation — What Would Make This Account Safe?
+    </h5>
+    <p class="text-muted small mb-4">{{ cf.summary }}</p>
+
+    {% if not cf.already_safe and cf.interventions %}
+    <!-- Score drop visualisation -->
+    <div class="d-flex align-items-center gap-3 mb-4 p-3 rounded"
+        style="background:rgba(251,191,36,0.06); border:1px solid rgba(251,191,36,0.2);">
+        <div class="text-center px-3">
+            <div class="fw-bold text-muted small">CURRENT SCORE</div>
+            <div class="fw-bold text-danger fs-4">{{ cf.original_score }}%</div>
+        </div>
+        <div class="flex-grow-1 text-center">
+            <div class="text-warning small">apply {{ cf.total_interventions }} change(s)</div>
+            <div class="progress mt-1" style="height:8px;">
+                <div class="progress-bar bg-warning" style="width:{{ cf.score_reduction / cf.original_score * 100 if cf.original_score > 0 else 0 }}%"></div>
+            </div>
+            <div class="text-success small mt-1">▼ {{ cf.score_reduction }}% reduction</div>
+        </div>
+        <div class="text-center px-3">
+            <div class="fw-bold text-muted small">PROJECTED SCORE</div>
+            <div class="fw-bold fs-4 {% if cf.projected_score < 40 %}text-success{% elif cf.projected_score < 70 %}text-warning{% else %}text-danger{% endif %}">
+                {{ cf.projected_score }}%
+                {% if cf.is_achievable %}<i class="bi bi-check-circle-fill text-success ms-1" style="font-size:0.9rem;"></i>{% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Intervention steps -->
+    <div class="row g-3">
+        {% for step in cf.interventions %}
+        <div class="col-md-6">
+            <div class="p-3 rounded h-100"
+                style="background:rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.07);">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <span class="badge bg-warning text-dark rounded-pill">Step {{ loop.index }}</span>
+                    {% if step.time_based %}
+                    <span class="badge bg-secondary">⏱ Requires Time</span>
+                    {% else %}
+                    <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25">Actionable</span>
+                    {% endif %}
+                </div>
+                <p class="text-white small fw-semibold mb-2">{{ step.description }}</p>
+                <div class="d-flex justify-content-between text-muted" style="font-size:0.75rem;">
+                    <span>Current: <strong class="text-warning">{{ step.current_value }}</strong></span>
+                    <span>Target: <strong class="text-success">{{ step.target_value }}</strong></span>
+                    <span>Score drop: <strong class="text-info">▼{{ step.score_reduction }}%</strong></span>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% elif cf.already_safe %}
+    <div class="alert alert-success bg-success bg-opacity-10 border border-success border-opacity-25 text-success">
+        <i class="bi bi-check-circle-fill me-2"></i>
+        Profile is already below the threat threshold. No remediation required.
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
+<!-- ─── Panel 3: NLP Token Saliency Heatmap ─────────────────────────────── -->
+{% if xai.nlp_saliency and xai.nlp_saliency.tokens %}
+{% set sal = xai.nlp_saliency %}
+<div class="glass-card p-4 mb-4">
+    <h5 class="fw-bold text-white mb-3 d-flex align-items-center">
+        <i class="bi bi-thermometer-half me-2" style="color:#f472b6;"></i>
+        DistilBERT Token Saliency — Which Words Triggered the AI?
+    </h5>
+    <p class="text-muted small mb-3">
+        Each word is colored by its threat attention weight.
+        <span style="background:#FF1744;border-radius:3px;padding:1px 5px;font-size:0.75rem;">CRITICAL</span>
+        <span style="background:#FF6D00;border-radius:3px;padding:1px 5px;font-size:0.75rem;">HIGH</span>
+        <span style="background:#FF9800;border-radius:3px;padding:1px 5px;font-size:0.75rem;">MEDIUM</span>
+        <span style="background:#424242;border-radius:3px;padding:1px 5px;font-size:0.75rem;">NEUTRAL</span>
+        &nbsp; | Method: <strong>{{ sal.method | upper }}</strong>
+    </p>
+
+    <!-- Annotated tweet heatmap -->
+    <div class="p-3 rounded mb-4"
+        style="background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.08);
+               font-family:monospace; line-height:2.2; word-wrap:break-word;">
+        {{ sal.annotated_html | safe }}
+    </div>
+
+    <!-- Top trigger tokens -->
+    {% if sal.top_triggers %}
+    <h6 class="text-pink fw-bold mb-3" style="color:#f472b6;">
+        <i class="bi bi-exclamation-diamond-fill me-1"></i> Top Threat Trigger Tokens
+    </h6>
+    <div class="d-flex flex-wrap gap-2">
+        {% for tok in sal.top_triggers %}
+        <div class="px-3 py-2 rounded d-flex align-items-center gap-2"
+            style="background:rgba({{ '244,114,182' if tok.risk > 0.75 else '251,191,36' }},0.15);
+                   border:1px solid {{ tok.color_hex }}40;">
+            <span class="fw-bold" style="color:{{ tok.color_hex }};">{{ tok.token }}</span>
+            <span class="text-muted small">{{ (tok.risk * 100) | int }}% risk</span>
+            {% if tok.category %}
+            <span class="badge bg-dark text-muted" style="font-size:0.65rem;">{{ tok.category }}</span>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
+<!-- ─── Panel 4: SHAP–LIME Consensus Badge ──────────────────────────────── -->
+{% if xai.lime and xai.lime.available %}
+<div class="glass-card p-4 mb-4">
+    <h5 class="fw-bold text-white mb-3 d-flex align-items-center">
+        <i class="bi bi-intersect me-2" style="color:#34d399;"></i>
+        SHAP–LIME Cross-Verification Consensus
+    </h5>
+    <p class="text-muted small mb-4">
+        LIME independently verifies SHAP by building a local linear surrogate around this prediction point.
+        High consensus means the model's reasoning is <strong>consistent, non-contradictory, and trustworthy</strong>.
+    </p>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="p-3 rounded text-center"
+                style="background:rgba(52,211,153,0.08); border:1px solid rgba(52,211,153,0.25);">
+                <div class="fw-bold text-white fs-3">{{ xai.consensus.agreement_pct }}%</div>
+                <div class="text-muted small">Feature Agreement</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="p-3 rounded text-center"
+                style="background:rgba(99,102,241,0.08); border:1px solid rgba(99,102,241,0.25);">
+                <div class="fw-bold fs-4 text-{{ xai.consensus.consensus_color }}">
+                    {{ xai.consensus.consensus_level }}
+                </div>
+                <div class="text-muted small">Consensus Level</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="p-3 rounded text-center"
+                style="background:rgba(251,191,36,0.08); border:1px solid rgba(251,191,36,0.25);">
+                <div class="fw-bold text-white fs-3">{{ xai.lime.score | round(2) }}</div>
+                <div class="text-muted small">LIME Surrogate Fidelity (R²)</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- LIME top conditions -->
+    {% if xai.lime.top_features %}
+    <h6 class="text-white fw-bold mb-2">LIME Local Surrogate — Top Feature Conditions</h6>
+    <div class="row g-2">
+        {% for feat in xai.lime.top_features[:6] %}
+        <div class="col-md-6">
+            <div class="d-flex align-items-center gap-2 p-2 rounded"
+                style="background:rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.06);">
+                <i class="bi bi-{{ 'arrow-up text-danger' if feat.direction == 'threat' else 'arrow-down text-success' }}"></i>
+                <span class="text-slate-300 small flex-grow-1">{{ feat.condition }}</span>
+                <span class="badge bg-dark text-{{ 'danger' if feat.direction == 'threat' else 'success' }} border border-{{ 'danger' if feat.direction == 'threat' else 'success' }} border-opacity-25">
+                    {{ feat.weight | round(3) }}
+                </span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <p class="text-muted small mt-3 mb-0">
+        <i class="bi bi-info-circle me-1"></i>{{ xai.consensus.description }}
+    </p>
+</div>
+{% endif %}
+
+{% endif %}{# end xai block #}
+
+<!-- Top Contributing Features (Global Importance) -->
 {% if report.feature_importance %}
 <div class="glass-card p-4 mb-4">
     <h5 class="fw-bold text-white mb-3 d-flex align-items-center">
-        <i class="bi bi-bar-chart-line text-purple me-2"></i> Top Feature Weight Contributions
+        <i class="bi bi-bar-chart-line text-purple me-2"></i> Global Feature Weight Contributions (Gini Importance)
     </h5>
     <div class="row g-3">
         {% for feature in report.feature_importance %}

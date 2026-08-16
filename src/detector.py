@@ -19,6 +19,14 @@ from datetime import datetime
 from src.features.feature_extractor import UnifiedFeatureExtractor
 from src.models.train_model import ModelTrainer
 
+# XAI Engine — lazy import so server starts even if shap/lime not installed
+try:
+    from src.xai.xai_engine import XAIEngine
+    _XAI_AVAILABLE = True
+except Exception as _xai_import_err:
+    _XAI_AVAILABLE = False
+    logging.getLogger(__name__).warning(f"XAI Engine import failed: {_xai_import_err}")
+
 # Configure logging
 logger = logging.getLogger(__name__)
 
@@ -71,6 +79,19 @@ class UnifiedThreatDetector:
         self.threat_threshold = 0.7
         self.suspicious_threshold = 0.4
 
+        # Initialize XAI Engine (requires trained model)
+        self.xai_engine = None
+        if _XAI_AVAILABLE and self.model is not None:
+            try:
+                self.xai_engine = XAIEngine(
+                    model=self.model,
+                    scaler=self.model_trainer.scaler,
+                    feature_names=self.model_trainer.feature_names
+                )
+                logger.info("XAI Engine attached to UnifiedThreatDetector")
+            except Exception as e:
+                logger.warning(f"XAI Engine initialization failed: {e}")
+
         logger.info("UnifiedThreatDetector initialized successfully")
     
     def analyze_profile(self, profile_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -99,8 +120,10 @@ class UnifiedThreatDetector:
             feature_vector = self._prepare_feature_vector(features)
             
             # Make prediction using the model or fallback to heuristic
+            feature_vector_scaled = None
             if self.model:
-                probability = self._predict_with_model(feature_vector)
+                feature_vector_scaled = self.model_trainer.scaler.transform(feature_vector)
+                probability = float(self.model.predict_proba(feature_vector_scaled)[0][1])
                 is_threat = probability >= self.threat_threshold
                 feature_importance = self._get_feature_importance(feature_vector)
             else:
@@ -115,7 +138,26 @@ class UnifiedThreatDetector:
             
             # Generate recommendations based on the analysis
             recommendations = self._generate_recommendations(is_threat, probability, threat_type, indicators)
-            
+
+            # ── XAI Forensic Report ──────────────────────────────────────────
+            xai_report = {}
+            if self.xai_engine is not None and feature_vector_scaled is not None:
+                try:
+                    tweets = profile_data.get('recent_tweets', [])
+                    tweet_texts = []
+                    for tw in tweets:
+                        if isinstance(tw, dict):
+                            tweet_texts.append(tw.get('text', tw.get('full_text', '')))
+                        elif isinstance(tw, str):
+                            tweet_texts.append(tw)
+                    xai_report = self.xai_engine.explain(
+                        X_scaled=feature_vector_scaled,
+                        raw_features=features,
+                        tweets=tweet_texts
+                    )
+                except Exception as xai_err:
+                    logger.warning(f"XAI explain failed for {profile_data.get('username')}: {xai_err}")
+
             # Prepare the final result
             sanitized_features = {}
             for k, v in features.items():
@@ -134,6 +176,7 @@ class UnifiedThreatDetector:
                 'features': sanitized_features,
                 'feature_importance': feature_importance,
                 'recommendations': recommendations,
+                'xai_report': xai_report,
                 'profile_data': {
                     'username': profile_data.get('username', 'Unknown'),
                     'platform': profile_data.get('platform', 'Unknown'),
@@ -144,7 +187,7 @@ class UnifiedThreatDetector:
                     'bio': profile_data.get('bio', '')
                 },
                 'analysis_timestamp': datetime.now().isoformat(),
-                'model_used': self.model_name or 'HistGradientBoosting + DistilBERT'
+                'model_used': self.model_name or 'AdaBoost + DistilBERT'
             }
             
             logger.info(f"Analysis complete: threat={is_threat}, type={threat_type}, prob={probability:.3f}")
@@ -257,6 +300,8 @@ class UnifiedThreatDetector:
     def _predict_with_model(self, feature_df: pd.DataFrame) -> float:
         """
         Make prediction using the trained model.
+        NOTE: This method is kept for backward compat but the main path
+        in analyze_profile() now scales directly to expose X_scaled for XAI.
         
         Args:
             feature_df: Preprocessed feature DataFrame
@@ -264,12 +309,8 @@ class UnifiedThreatDetector:
         Returns:
             Threat probability (0-1)
         """
-        # Scale features
         feature_vector_scaled = self.model_trainer.scaler.transform(feature_df)
-        
-        # Get probability
         probability = self.model.predict_proba(feature_vector_scaled)[0][1]
-        
         return float(probability)
     
     def _get_feature_importance(self, feature_vector: np.ndarray) -> Dict[str, float]:
