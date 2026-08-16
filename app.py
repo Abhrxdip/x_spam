@@ -1,4 +1,5 @@
 import os
+import uuid
 import logging
 from datetime import datetime
 from dotenv import load_dotenv
@@ -36,6 +37,10 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 # Initialize detector
 detector = UnifiedThreatDetector()
 
+# Server-side stores to prevent cookie size overflow (>4KB)
+BATCH_RESULTS_STORE = {}
+SINGLE_RESULTS_STORE = {}
+
 @app.route('/')
 def index():
     """Render the home page."""
@@ -62,9 +67,13 @@ def analyze_profile():
             # Generate visualization for the report
             report_data = generate_report(result, profile_data)
             
-            # Store result in session for the results page
-            session['report_data'] = report_data
-            session['analysis_timestamp'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            # Store result in server-side store
+            analysis_id = str(uuid.uuid4())
+            SINGLE_RESULTS_STORE[analysis_id] = {
+                'report_data': report_data,
+                'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            }
+            session['analysis_id'] = analysis_id
             
             return redirect(url_for('results'))
         
@@ -123,9 +132,13 @@ def batch_analysis():
                 # Process the batch file
                 results = detector.batch_analyze_from_file(filepath, platform)
                 
-                # Store batch results
-                session['batch_results'] = results
-                session['batch_timestamp'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                # Store batch results in server-side memory store
+                batch_id = str(uuid.uuid4())
+                BATCH_RESULTS_STORE[batch_id] = {
+                    'results': results,
+                    'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                }
+                session['batch_id'] = batch_id
                 
                 return redirect(url_for('batch_results'))
             
@@ -139,24 +152,36 @@ def batch_analysis():
 @app.route('/results')
 def results():
     """Display the results of a single profile analysis."""
-    if 'report_data' not in session:
+    analysis_id = session.get('analysis_id')
+    stored = SINGLE_RESULTS_STORE.get(analysis_id) if analysis_id else None
+    
+    if not stored and SINGLE_RESULTS_STORE:
+        stored = list(SINGLE_RESULTS_STORE.values())[-1]
+    
+    if not stored:
         flash('No analysis data found. Please analyze a profile first.', 'error')
         return redirect(url_for('index'))
     
-    report_data = session['report_data']
-    timestamp = session.get('analysis_timestamp', 'Unknown')
+    report_data = stored.get('report_data')
+    timestamp = stored.get('timestamp', 'Unknown')
     
     return render_template('results.html', report=report_data, timestamp=timestamp)
 
 @app.route('/batch-results')
 def batch_results():
     """Display the results of a batch analysis."""
-    if 'batch_results' not in session:
+    batch_id = session.get('batch_id')
+    stored = BATCH_RESULTS_STORE.get(batch_id) if batch_id else None
+    
+    if not stored and BATCH_RESULTS_STORE:
+        stored = list(BATCH_RESULTS_STORE.values())[-1]
+    
+    if not stored:
         flash('No batch analysis results found. Please run a batch analysis first.', 'error')
         return redirect(url_for('batch_analysis'))
     
-    results = session['batch_results']
-    timestamp = session.get('batch_timestamp', 'Unknown')
+    results = stored.get('results', [])
+    timestamp = stored.get('timestamp', 'Unknown')
     
     return render_template('batch_results.html', results=results, timestamp=timestamp)
 
