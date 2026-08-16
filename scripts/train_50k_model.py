@@ -30,7 +30,7 @@ sys.path.insert(0, PROJECT_ROOT)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-NUM_EPOCHS = 15
+NUM_EPOCHS = 10
 
 def load_realistic_dataset(path: str) -> pd.DataFrame:
     """
