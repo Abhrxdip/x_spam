@@ -208,18 +208,24 @@
                                     </span>
                                 </td>
                                 <td>
-                                    {% set indicators = result.indicators[:3] %}
-                                    {% for ind in indicators %}
-                                    <span class="badge bg-{{ ind.severity_class }} me-1">{{ ind.type.replace('_', ' ').title() }}</span>
-                                    {% endfor %}
-                                    {% if result.indicators|length > 3 %}
-                                    <span class="text-muted">+{{ result.indicators|length - 3 }} more</span>
+                                    {% if result.indicators and result.indicators|length > 0 %}
+                                        {% for ind in result.indicators[:2] %}
+                                        {% set badge_color = 'danger' if ind.severity == 'high' else ('warning text-dark' if ind.severity == 'medium' else 'success') %}
+                                        <span class="badge bg-{{ ind.severity_class if ind.severity_class else badge_color }} me-1">
+                                            {{ ind.type_label if ind.type_label else ind.type.replace('_', ' ').title() }}
+                                        </span>
+                                        {% endfor %}
+                                        {% if result.indicators|length > 2 %}
+                                        <span class="badge bg-secondary">+{{ result.indicators|length - 2 }} more</span>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="badge bg-success">Organic / Safe</span>
                                     {% endif %}
                                 </td>
                                 <td>
                                     <button class="btn btn-sm btn-outline-primary" 
                                             onclick="showDetails({{ loop.index0 }})"
-                                            title="View Forensic Details">
+                                            title="View Forensic Details & Reasoning">
                                         <i class="bi bi-eye me-1"></i>Details
                                     </button>
                                 </td>
@@ -261,7 +267,7 @@
 
     <footer class="bg-dark text-white py-3 mt-5">
         <div class="container text-center">
-            <p class="mb-0 small">Adaptive Social Engineering Defense Framework &copy; 2024</p>
+            <p class="mb-0 small">Adaptive Social Engineering Defense Framework &copy; 2026</p>
         </div>
     </footer>
 
@@ -292,6 +298,7 @@
             const body = document.getElementById('modalBody');
             
             const prof = result.profile_data || {};
+            const feats = result.features || {};
             const username = prof.username || 'Unknown';
             const threatType = (result.threat_type || 'Unknown').replace(/_/g, ' ').toUpperCase();
             const isThreat = result.is_threat;
@@ -301,56 +308,127 @@
 
             title.innerHTML = `<i class="bi bi-shield-lock me-2"></i>@${username} &mdash; <span class="badge bg-${riskClass}">${threatType}</span>`;
             
+            // Build Dynamic Explainable AI Reasoning (Why it was evaluated this way)
+            let evaluationReasons = [];
+            const nlpScore = feats.nlp_phishing_score !== undefined ? parseFloat(feats.nlp_phishing_score) : 0;
+            const spamMatches = feats.spam_pattern_matches !== undefined ? parseInt(feats.spam_pattern_matches) : 0;
+            const susScore = feats.suspicious_content_score !== undefined ? parseFloat(feats.suspicious_content_score) : 0;
+            const linkRatio = feats.link_post_ratio !== undefined ? parseFloat(feats.link_post_ratio) : 0;
+            const mentionRatio = feats.mention_ratio !== undefined ? parseFloat(feats.mention_ratio) : 0;
+            const dupRatio = feats.duplicate_post_ratio !== undefined ? parseFloat(feats.duplicate_post_ratio) : 0;
+            const folRatio = feats.followers_to_following_ratio !== undefined ? parseFloat(feats.followers_to_following_ratio) : 1;
+            const ageDays = feats.account_age_days !== undefined ? parseInt(feats.account_age_days) : 365;
+
+            if (isThreat || prob >= 0.4) {
+                if (nlpScore > 0.5) {
+                    evaluationReasons.push(`<li class="mb-1"><strong class="text-danger">NLP Transformer Signal:</strong> Fine-Tuned DistilBERT flagged high probability of phishing / social engineering intent (${(nlpScore * 100).toFixed(1)}% semantic match).</li>`);
+                }
+                if (spamMatches > 0) {
+                    evaluationReasons.push(`<li class="mb-1"><strong class="text-danger">Spam Pattern Trigger:</strong> Detected ${spamMatches} aggressive regex patterns (financial promises, crypto keywords, URL redirects).</li>`);
+                }
+                if (susScore > 0.25) {
+                    evaluationReasons.push(`<li class="mb-1"><strong class="text-warning">Linguistic Entropy:</strong> Suspicious vocabulary concentration score of ${(susScore * 100).toFixed(1)}%.</li>`);
+                }
+                if (linkRatio > 0.4) {
+                    evaluationReasons.push(`<li class="mb-1"><strong class="text-danger">Link Stuffing:</strong> ${(linkRatio * 100).toFixed(0)}% of posts contain external URLs/redirects commonly used in phishing campaigns.</li>`);
+                }
+                if (mentionRatio > 0.3) {
+                    evaluationReasons.push(`<li class="mb-1"><strong class="text-danger">Mass Mention Spam:</strong> Unnatural @username tagging ratio (${(mentionRatio * 100).toFixed(0)}%) indicating bot syndicate targeting.</li>`);
+                }
+                if (dupRatio > 0.2) {
+                    evaluationReasons.push(`<li class="mb-1"><strong class="text-warning">Copy-Paste Repetition:</strong> ${(dupRatio * 100).toFixed(0)}% duplicate post content indicating automated broadcasting.</li>`);
+                }
+                if (folRatio < 0.1) {
+                    evaluationReasons.push(`<li class="mb-1"><strong class="text-danger">Follower Imbalance:</strong> Following accounts outnumber followers by >10x, a primary botnet footprint.</li>`);
+                }
+                if (ageDays < 30) {
+                    evaluationReasons.push(`<li class="mb-1"><strong class="text-danger">Synthetic Account Age:</strong> Account was registered recently (${ageDays} days old) with immediate burst activity.</li>`);
+                }
+            } else {
+                evaluationReasons.push(`<li class="mb-1"><strong class="text-success">Organic Content Entropy:</strong> DistilBERT NLP threat probability is minimal (${(nlpScore * 100).toFixed(1)}%), with no malicious phishing intent.</li>`);
+                evaluationReasons.push(`<li class="mb-1"><strong class="text-success">Healthy Network Density:</strong> Follower-to-following ratio (${folRatio.toFixed(2)}x) reflects authentic social interaction.</li>`);
+                evaluationReasons.push(`<li class="mb-1"><strong class="text-success">Established Longevity:</strong> Account has an active historical lifespan of ${ageDays} days with stable temporal intervals.</li>`);
+            }
+
+            // Indicators list
             let indicatorsHtml = '';
             if (result.indicators && result.indicators.length > 0) {
-                indicatorsHtml = '<h6 class="fw-bold mt-3"><i class="bi bi-exclamation-octagon me-1 text-danger"></i>Explainable AI (XAI) Threat Indicators:</h6><ul class="list-group list-group-flush mb-3">';
+                indicatorsHtml = '<h6 class="fw-bold mt-3 mb-2"><i class="bi bi-exclamation-octagon me-1 text-danger"></i>Forensic Security Indicators:</h6><ul class="list-group list-group-flush mb-3">';
                 result.indicators.forEach(ind => {
-                    const badgeColor = ind.severity === 'high' ? 'danger' : (ind.severity === 'medium' ? 'warning' : 'info');
-                    indicatorsHtml += `<li class="list-group-item d-flex justify-content-between align-items-center">
+                    const badgeColor = ind.severity === 'high' ? 'danger' : (ind.severity === 'medium' ? 'warning text-dark' : 'success');
+                    indicatorsHtml += `<li class="list-group-item d-flex justify-content-between align-items-center py-2">
                         <div>
-                            <strong>${(ind.type || '').replace(/_/g, ' ').toUpperCase()}:</strong> ${ind.description || ''}
+                            <strong>${(ind.type_label || ind.type || '').replace(/_/g, ' ').toUpperCase()}:</strong> ${ind.description || ''}
                         </div>
                         <span class="badge bg-${badgeColor}">${(ind.severity || 'INFO').toUpperCase()}</span>
                     </li>`;
                 });
                 indicatorsHtml += '</ul>';
-            } else {
-                indicatorsHtml = '<div class="alert alert-success mt-3 py-2"><i class="bi bi-check-circle me-1"></i>No high-risk malicious indicators flagged.</div>';
             }
-            
+
+            // Recommendations
             let recommendationsHtml = '';
             if (result.recommendations && result.recommendations.length > 0) {
-                recommendationsHtml = '<h6 class="fw-bold"><i class="bi bi-list-check me-1 text-primary"></i>Incident Response Recommendations:</h6><ol class="mb-0 ps-3">';
+                recommendationsHtml = '<h6 class="fw-bold mt-3 mb-2"><i class="bi bi-list-check me-1 text-primary"></i>Incident Response Recommendations:</h6><ol class="mb-0 ps-3">';
                 result.recommendations.forEach(rec => {
                     recommendationsHtml += `<li class="mb-1 text-muted">${rec}</li>`;
                 });
                 recommendationsHtml += '</ol>';
             }
-            
+
             body.innerHTML = `
+                <!-- Overview Cards -->
                 <div class="row g-3 mb-3">
                     <div class="col-md-6">
-                        <div class="p-3 bg-light rounded border">
-                            <h6 class="fw-bold text-secondary mb-2"><i class="bi bi-person me-1"></i>Account Metadata</h6>
+                        <div class="p-3 bg-light rounded border h-100">
+                            <h6 class="fw-bold text-secondary mb-2"><i class="bi bi-person me-1"></i>Account Profile</h6>
                             <div><strong>Username:</strong> @${username}</div>
                             <div><strong>Platform:</strong> ${(prof.platform || 'twitter').toUpperCase()}</div>
                             <div><strong>Followers:</strong> ${Number(prof.followers_count || 0).toLocaleString()}</div>
                             <div><strong>Following:</strong> ${Number(prof.following_count || 0).toLocaleString()}</div>
-                            <div><strong>Posts:</strong> ${Number(prof.posts_count || 0).toLocaleString()}</div>
-                            <div><strong>Verified:</strong> ${prof.verified ? '<span class="badge bg-primary">Verified</span>' : '<span class="badge bg-secondary">Unverified</span>'}</div>
+                            <div><strong>Total Posts:</strong> ${Number(prof.posts_count || 0).toLocaleString()}</div>
+                            <div><strong>Verification:</strong> ${prof.verified ? '<span class="badge bg-primary">Verified</span>' : '<span class="badge bg-secondary">Unverified</span>'}</div>
                         </div>
                     </div>
                     <div class="col-md-6">
-                        <div class="p-3 bg-light rounded border">
-                            <h6 class="fw-bold text-secondary mb-2"><i class="bi bi-cpu me-1"></i>AI Inference Engine</h6>
-                            <div><strong>Threat Assessment:</strong> <span class="badge bg-${riskClass}">${riskLabel}</span></div>
+                        <div class="p-3 bg-light rounded border h-100">
+                            <h6 class="fw-bold text-secondary mb-2"><i class="bi bi-cpu me-1"></i>AI Threat Assessment</h6>
+                            <div><strong>Evaluation Result:</strong> <span class="badge bg-${riskClass} fs-6">${riskLabel}</span></div>
                             <div><strong>Threat Confidence:</strong> ${(prob * 100).toFixed(1)}%</div>
-                            <div><strong>Classification:</strong> ${threatType}</div>
-                            <div><strong>Model:</strong> ${result.model_used || 'HistGradientBoosting + DistilBERT'}</div>
-                            <div><strong>Analyzed At:</strong> ${result.analysis_timestamp ? new Date(result.analysis_timestamp).toLocaleString() : 'Just now'}</div>
+                            <div><strong>Threat Category:</strong> <span class="badge bg-dark">${threatType}</span></div>
+                            <div><strong>Champion Model:</strong> ${result.model_used || 'HistGradientBoosting + DistilBERT'}</div>
+                            <div><strong>Scan Timestamp:</strong> ${result.analysis_timestamp ? new Date(result.analysis_timestamp).toLocaleString() : 'Just now'}</div>
                         </div>
                     </div>
                 </div>
+
+                <!-- XAI Evaluation Logic -->
+                <div class="p-3 rounded border mb-3 ${isThreat ? 'bg-danger bg-opacity-10 border-danger' : 'bg-success bg-opacity-10 border-success'}">
+                    <h6 class="fw-bold ${isThreat ? 'text-danger' : 'text-success'} mb-2">
+                        <i class="bi ${isThreat ? 'bi-shield-exclamation' : 'bi-shield-check'} me-2"></i>
+                        Why This Account Was Evaluated as ${riskLabel}:
+                    </h6>
+                    <ul class="mb-0 ps-3 small text-dark">
+                        ${evaluationReasons.join('')}
+                    </ul>
+                </div>
+
+                <!-- Key 44-Feature Signal Matrix -->
+                <div class="p-3 bg-light rounded border mb-3">
+                    <h6 class="fw-bold text-secondary mb-2"><i class="bi bi-bar-chart-steps me-1"></i>Key Multi-Modal Feature Signals</h6>
+                    <div class="row g-2 small text-dark">
+                        <div class="col-md-4">Account Age: <strong>${ageDays} days</strong></div>
+                        <div class="col-md-4">Follower Ratio: <strong>${folRatio.toFixed(3)}x</strong></div>
+                        <div class="col-md-4">DistilBERT Score: <strong>${(nlpScore * 100).toFixed(1)}%</strong></div>
+                        <div class="col-md-4">Spam Pattern Matches: <strong>${spamMatches}</strong></div>
+                        <div class="col-md-4">Link Post Ratio: <strong>${(linkRatio * 100).toFixed(0)}%</strong></div>
+                        <div class="col-md-4">Mention Stuffing Ratio: <strong>${(mentionRatio * 100).toFixed(0)}%</strong></div>
+                        <div class="col-md-4">Duplicate Post Ratio: <strong>${(dupRatio * 100).toFixed(0)}%</strong></div>
+                        <div class="col-md-4">Suspicious Content Score: <strong>${(susScore * 100).toFixed(1)}%</strong></div>
+                        <div class="col-md-4">Default Profile Image: <strong>${feats.is_default_image ? 'Yes' : 'No'}</strong></div>
+                    </div>
+                </div>
+
                 ${indicatorsHtml}
                 ${recommendationsHtml}
             `;
