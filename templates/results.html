@@ -20,16 +20,18 @@
 <div class="row g-4 mb-4">
     <div class="col-md-4">
         <div class="glass-card p-4 text-center h-100 position-relative overflow-hidden">
-            <div class="stat-icon-wrapper mx-auto mb-3 bg-{{ report.analysis.risk_color }} bg-opacity-25 text-{{ report.analysis.risk_color }}" style="width: 60px; height: 60px; font-size: 2rem;">
+            <div class="stat-icon-wrapper mx-auto mb-3 bg-{{ report.analysis.risk_color }} bg-opacity-25 text-{{ report.analysis.risk_color }}"
+                style="width: 60px; height: 60px; font-size: 2rem;">
                 {% if report.analysis.is_threat %}
-                    <i class="bi bi-exclamation-triangle-fill"></i>
+                <i class="bi bi-exclamation-triangle-fill"></i>
                 {% else %}
-                    <i class="bi bi-check-circle-fill"></i>
+                <i class="bi bi-check-circle-fill"></i>
                 {% endif %}
             </div>
             <h3 class="fw-bold text-white mb-1">{{ report.analysis.threat_type_display }}</h3>
             <div class="text-muted small mb-3">Threat Classification</div>
-            <span class="badge px-3 py-2 rounded-pill {% if report.analysis.is_threat %}gradient-badge-threat{% else %}gradient-badge-safe{% endif %} fs-6">
+            <span
+                class="badge px-3 py-2 rounded-pill {% if report.analysis.is_threat %}gradient-badge-threat{% else %}gradient-badge-safe{% endif %} fs-6">
                 {{ report.analysis.risk_level|upper }} RISK
             </span>
         </div>
@@ -41,8 +43,10 @@
                 {{ report.analysis.probability_percent }}
             </div>
             <div class="text-muted small mb-3">AI Model Threat Probability Score</div>
-            <div class="progress bg-dark border border-secondary border-opacity-25" style="height: 12px; border-radius: 6px;">
-                <div class="progress-bar bg-{{ report.analysis.risk_color }}" role="progressbar" style="width: {{ report.analysis.probability_percent }}"></div>
+            <div class="progress bg-dark border border-secondary border-opacity-25"
+                style="height: 12px; border-radius: 6px;">
+                <div class="progress-bar bg-{{ report.analysis.risk_color }}" role="progressbar"
+                    style="width: {{ report.analysis.probability_percent }}"></div>
             </div>
         </div>
     </div>
@@ -78,8 +82,10 @@
         <i class="bi bi-file-earmark-text text-warning me-2"></i> Executive Summary
     </h5>
     <p class="lead text-slate-200 mb-3">{{ report.summary }}</p>
-    <div class="d-flex flex-wrap justify-content-between text-muted small pt-2 border-top border-secondary border-opacity-25">
-        <span><i class="bi bi-cpu me-1"></i> ML Classifier Model: <strong>{{ report.analysis.model_used }}</strong></span>
+    <div
+        class="d-flex flex-wrap justify-content-between text-muted small pt-2 border-top border-secondary border-opacity-25">
+        <span><i class="bi bi-cpu me-1"></i> ML Classifier Model: <strong>{{ report.analysis.model_used
+                }}</strong></span>
         <span><i class="bi bi-clock me-1"></i> Timestamp: <strong>{{ report.analysis.timestamp }}</strong></span>
     </div>
 </div>
@@ -146,7 +152,8 @@
     </h5>
     <ul class="list-group list-group-flush bg-transparent">
         {% for rec in report.recommendations %}
-        <li class="list-group-item bg-transparent text-slate-300 border-secondary border-opacity-25 d-flex align-items-start py-2">
+        <li
+            class="list-group-item bg-transparent text-slate-300 border-secondary border-opacity-25 d-flex align-items-start py-2">
             <i class="bi bi-check2-circle text-success me-2 mt-1"></i>
             <div>{{ rec }}</div>
         </li>

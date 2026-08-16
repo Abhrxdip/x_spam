@@ -588,9 +588,155 @@ def get_facebook_profile_data(username: str) -> Dict[str, Any]:
         'thread_entry_type': 'original'
     }
 
+def _parse_twibot_or_json_item(item: Any, default_platform: str = 'twitter') -> Optional[Dict[str, Any]]:
+    """Parse a single item from JSON which might be TwiBot-20 format, standard dict, or username string."""
+    if isinstance(item, str):
+        username = item.strip().lstrip('@')
+        if username:
+            return process_profile_url(username, default_platform)
+        return None
+
+    if not isinstance(item, dict):
+        return None
+
+    # Check if this is TwiBot-20 format (has 'profile' dict or 'tweet' list)
+    prof = item.get('profile')
+    if isinstance(prof, dict):
+        username = str(prof.get('screen_name') or prof.get('username') or prof.get('name') or item.get('ID') or 'user').strip().lstrip('@')
+        name = str(prof.get('name') or username).strip()
+        bio = str(prof.get('description') or '')
+        
+        def safe_int(val, default=0):
+            try:
+                if val is None or str(val).strip() in ['None', 'none', '']:
+                    return default
+                return int(float(str(val).strip()))
+            except Exception:
+                return default
+
+        followers = safe_int(prof.get('followers_count', 0))
+        following = safe_int(prof.get('friends_count', prof.get('following_count', 0)))
+        posts_count = safe_int(prof.get('statuses_count', prof.get('posts_count', 0)))
+        
+        verified_val = str(prof.get('verified', 'false')).strip().lower()
+        verified = verified_val in ['true', '1', 'yes']
+        
+        creation_date = str(prof.get('created_at') or '2020-01-01').strip()
+        profile_pic = str(prof.get('profile_image_url_https') or prof.get('profile_image_url') or '').strip()
+        external_url = str(prof.get('url') or '').strip()
+        if external_url in ['None', 'none', '', 'null']:
+            external_url = None
+            
+        location = str(prof.get('location') or '').strip()
+        
+        # Parse tweets
+        raw_tweets = item.get('tweet') or item.get('tweets') or item.get('posts') or []
+        posts_data = []
+        if isinstance(raw_tweets, list):
+            for t in raw_tweets[:20]:
+                if isinstance(t, str):
+                    posts_data.append({
+                        'text': t.strip(),
+                        'created_at': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                        'likes': 0,
+                        'retweets': 0
+                    })
+                elif isinstance(t, dict):
+                    posts_data.append({
+                        'text': t.get('text', str(t)),
+                        'created_at': t.get('created_at', datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+                        'likes': safe_int(t.get('likes', t.get('favorite_count', 0))),
+                        'retweets': safe_int(t.get('retweets', t.get('retweet_count', 0)))
+                    })
+
+        return {
+            'username': username,
+            'display_name': name,
+            'bio': bio,
+            'external_url': external_url,
+            'profile_pic_url': profile_pic,
+            'creation_date': creation_date,
+            'followers_count': followers,
+            'following_count': following,
+            'posts_count': posts_count,
+            'verified': verified,
+            'location': location,
+            'posts': posts_data,
+            'platform': default_platform,
+            'sentiment_label': 'neutral',
+            'country': 'US',
+            'account_type': 'individual',
+            'gender': 'unknown',
+            'thread_entry_type': 'original'
+        }
+
+    # Standard dict format with username/profile_url
+    username = item.get('username') or item.get('screen_name') or item.get('handle') or item.get('profile_url') or item.get('url') or item.get('ID')
+    if username:
+        profile_platform = item.get('platform', default_platform)
+        # If item already has followers_count or posts, construct directly
+        if 'followers_count' in item or 'following_count' in item or 'followers' in item or 'posts' in item:
+            def safe_int(val, default=0):
+                try:
+                    if val is None or str(val).strip() in ['None', 'none', '']:
+                        return default
+                    return int(float(str(val).strip()))
+                except Exception:
+                    return default
+                    
+            followers = safe_int(item.get('followers_count', item.get('followers', 0)))
+            following = safe_int(item.get('following_count', item.get('following', item.get('friends_count', 0))))
+            posts_count = safe_int(item.get('posts_count', item.get('statuses_count', 0)))
+            verified_val = str(item.get('verified', 'false')).strip().lower()
+            verified = verified_val in ['true', '1', 'yes']
+            
+            raw_tweets = item.get('posts') or item.get('tweet') or item.get('tweets') or []
+            posts_data = []
+            if isinstance(raw_tweets, list):
+                for t in raw_tweets[:20]:
+                    if isinstance(t, str):
+                        posts_data.append({
+                            'text': t.strip(),
+                            'created_at': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                            'likes': 0,
+                            'retweets': 0
+                        })
+                    elif isinstance(t, dict):
+                        posts_data.append({
+                            'text': t.get('text', str(t)),
+                            'created_at': t.get('created_at', datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+                            'likes': safe_int(t.get('likes', 0)),
+                            'retweets': safe_int(t.get('retweets', 0))
+                        })
+
+            return {
+                'username': str(username).strip().lstrip('@'),
+                'display_name': str(item.get('display_name') or item.get('name') or username).strip(),
+                'bio': str(item.get('bio') or item.get('description') or ''),
+                'external_url': item.get('external_url') or item.get('url'),
+                'profile_pic_url': item.get('profile_pic_url') or item.get('profile_image_url') or '',
+                'creation_date': str(item.get('creation_date') or item.get('created_at') or '2020-01-01'),
+                'followers_count': followers,
+                'following_count': following,
+                'posts_count': posts_count,
+                'verified': verified,
+                'location': str(item.get('location') or ''),
+                'posts': posts_data,
+                'platform': profile_platform,
+                'sentiment_label': item.get('sentiment_label', 'neutral'),
+                'country': item.get('country', 'US'),
+                'account_type': item.get('account_type', 'individual'),
+                'gender': item.get('gender', 'unknown'),
+                'thread_entry_type': item.get('thread_entry_type', 'original')
+            }
+        else:
+            return process_profile_url(str(username), profile_platform)
+
+    return None
+
 def process_batch_file(filepath: str, platform: str) -> List[Dict[str, Any]]:
     """
-    Process a batch file (CSV or JSON) containing multiple profiles.
+    Process a batch file (CSV or JSON, including TwiBot-20 format) containing multiple profiles.
     
     Args:
         filepath: Path to the batch file
@@ -604,38 +750,60 @@ def process_batch_file(filepath: str, platform: str) -> List[Dict[str, Any]]:
     profiles = []
     
     if filepath.endswith('.csv'):
-        df = pd.read_csv(filepath)
+        try:
+            df = pd.read_csv(filepath, encoding='utf-8', encoding_errors='replace')
+        except Exception:
+            try:
+                df = pd.read_csv(filepath, encoding='latin1')
+            except Exception:
+                df = pd.read_csv(filepath)
         
-        # Expected columns: username, platform (optional)
+        # Expected columns: username, screen_name, profile_url, url, ID
         for _, row in df.iterrows():
-            username = row.get('username') or row.get('profile_url') or row.get('url')
-            if username:
+            username = row.get('username') or row.get('screen_name') or row.get('handle') or row.get('profile_url') or row.get('url') or row.get('ID')
+            if pd.notna(username) and str(username).strip():
                 profile_platform = row.get('platform', platform)
+                if pd.isna(profile_platform):
+                    profile_platform = platform
                 try:
-                    profile_data = process_profile_url(str(username), profile_platform)
+                    profile_data = process_profile_url(str(username), str(profile_platform))
                     profiles.append(profile_data)
                 except Exception as e:
                     logger.warning(f"Failed to process {username}: {str(e)}")
     
     elif filepath.endswith('.json'):
-        with open(filepath, 'r') as f:
-            data = json.load(f)
+        raw_text = None
+        for enc in ['utf-8', 'utf-8-sig', 'latin1', 'cp1252']:
+            try:
+                with open(filepath, 'r', encoding=enc, errors='replace') as f:
+                    raw_text = f.read()
+                break
+            except Exception:
+                continue
         
+        if raw_text is None:
+            with open(filepath, 'rb') as f:
+                raw_text = f.read().decode('utf-8', errors='replace')
+                
+        data = json.loads(raw_text)
+        
+        # If it's a wrapper dict like {"profiles": [...]} or {"data": [...]}
+        if isinstance(data, dict):
+            for key in ['profiles', 'data', 'users', 'accounts', 'items']:
+                if key in data and isinstance(data[key], list):
+                    data = data[key]
+                    break
+            else:
+                data = [data]
+
         if isinstance(data, list):
             for item in data:
-                if isinstance(item, dict):
-                    username = item.get('username') or item.get('profile_url')
-                    profile_platform = item.get('platform', platform)
-                else:
-                    username = item
-                    profile_platform = platform
-                
-                if username:
-                    try:
-                        profile_data = process_profile_url(str(username), profile_platform)
+                try:
+                    profile_data = _parse_twibot_or_json_item(item, platform)
+                    if profile_data:
                         profiles.append(profile_data)
-                    except Exception as e:
-                        logger.warning(f"Failed to process {username}: {str(e)}")
+                except Exception as e:
+                    logger.warning(f"Failed to process batch JSON item: {str(e)}")
     
     else:
         raise ValueError(f"Unsupported file format: {filepath}")
