@@ -11,6 +11,7 @@
   <img src="https://img.shields.io/badge/Training-10_Epochs-F59E0B?style=for-the-badge&logo=apachespark&logoColor=white"/>
   <img src="https://img.shields.io/badge/NLP_Engine-DistilBERT_PyTorch-EE4C2C?style=for-the-badge&logo=pytorch&logoColor=white"/>
   <img src="https://img.shields.io/badge/Champion_Model-80.96%25_Acc-008080?style=for-the-badge"/>
+  <img src="https://img.shields.io/badge/Zero--Key_Scraper-GraphQL_Guest_Flow-blue?style=for-the-badge&logo=graphql&logoColor=white"/>
   <img src="https://img.shields.io/badge/XAI-SHAP_%2B_Token_Saliency_%2B_Counterfactuals-8A2BE2?style=for-the-badge"/>
 </p>
 
@@ -24,16 +25,17 @@
 
 ## 📑 Table of Contents
 1. [Executive Summary & Problem Statement](#-executive-summary--problem-statement)
-2. [End-to-End System Pipeline & Data Ingestion](#-end-to-end-system-pipeline--data-ingestion)
-3. [Multi-Modal Feature Fusion Engine (54 Signals)](#-multi-modal-feature-fusion-engine-54-signals)
-4. [Deep-Dive: Machine Learning Models & How They Are Used](#-deep-dive-machine-learning-models--how-they-are-used)
-5. [Exact Real Model Benchmark Leaderboard (50,000 Dataset)](#-exact-real-model-benchmark-leaderboard-50000-dataset)
-6. [4-Layer Explainable AI (XAI) Suite](#-4-layer-explainable-ai-xai-suite)
-7. [How ASEDF Detects Accounts with Bought / Fake Followers](#-how-asedf-detects-accounts-with-bought--fake-followers)
-8. [Twitter / X Platform Integration Architecture](#-twitter--x-platform-integration-architecture)
-9. [Blockchain & Cryptographic Proof of Malice](#-blockchain--cryptographic-proof-of-malice)
-10. [Smart India Hackathon (SIH) Winning Q&A Defense Playbook](#-smart-india-hackathon-sih-winning-qa-defense-playbook)
-11. [Local Quickstart & Execution Guide](#-local-quickstart--execution-guide)
+2. [Zero-Key Live Scraping Architecture (How It Scrapes Without Paid APIs)](#-zero-key-live-scraping-architecture)
+3. [End-to-End System Pipeline & Data Ingestion](#-end-to-end-system-pipeline--data-ingestion)
+4. [Multi-Modal Feature Fusion Engine (54 Signals)](#-multi-modal-feature-fusion-engine-54-signals)
+5. [Deep-Dive: Machine Learning Models & How They Are Used](#-deep-dive-machine-learning-models--how-they-are-used)
+6. [Exact Real Model Benchmark Leaderboard (50,000 Dataset)](#-exact-real-model-benchmark-leaderboard-50000-dataset)
+7. [4-Layer Explainable AI (XAI) Suite](#-4-layer-explainable-ai-xai-suite)
+8. [How ASEDF Detects Accounts with Bought / Fake Followers](#-how-asedf-detects-accounts-with-bought--fake-followers)
+9. [Twitter / X Platform Integration Architecture](#-twitter--x-platform-integration-architecture)
+10. [Blockchain & Cryptographic Proof of Malice](#-blockchain--cryptographic-proof-of-malice)
+11. [Smart India Hackathon (SIH) Winning Q&A Defense Playbook](#-smart-india-hackathon-sih-winning-qa-defense-playbook)
+12. [Local Quickstart & Execution Guide](#-local-quickstart--execution-guide)
 
 ---
 
@@ -42,17 +44,63 @@
 Modern social networks (such as X/Twitter, Instagram, and Facebook) are heavily weaponized by automated botnets, AI-generated crypto airdrop drainers, credential phishing schemes, bought-follower scams, and coordinated astroturfing campaigns.
 
 ### Why Traditional Moderation & Toy ML Models Fail:
-1. **Single-Feature Reliance:** Naive models check follower counts or keyword blacklists. When attackers buy 50,000 bot followers or use ChatGPT to generate conversational text, traditional filters are completely bypassed.
-2. **Opaque Black-Box Predictions:** Legacy classifiers output binary flags (`"85% Bot"`) without legal evidence or feature attribution, creating alert fatigue for SOC analysts and false-positive disputes.
-3. **Severe Batch Ingestion Latency:** Evaluating batches with unvectorized per-sample loops causes server timeouts.
+1. **API Cost Barriers:** Official platform APIs (such as X API v2) cost $100–$5,000/month, blocking public citizen defense and academic research tools.
+2. **Single-Feature Vulnerability:** Naive models check follower counts or keyword blacklists. When attackers purchase 50,000 bot followers or use LLMs (ChatGPT) to generate human-like tweets, traditional filters fail.
+3. **Opaque Black-Box Predictions:** Legacy classifiers output binary flags (`"85% Bot"`) without legal evidence or feature attribution, creating alert fatigue for SOC analysts.
 4. **Data Overfitting & Label Leakage:** Toy models trained on trivial synthetic datasets boast fake 100% accuracy but immediately collapse against zero-day social engineering attacks.
 
 ### The ASEDF Solution:
 The **Adaptive Social Engineering Defense Framework (ASEDF)** is an enterprise-grade cyber defense suite that combines:
+* **Zero-Key Live Scraping Architecture** utilizing anonymous Twitter GraphQL guest token activation to fetch real live public profile and tweet data without paid API keys.
 * **Multi-Modal Fusion Pipeline** combining DistilBERT NLP text embeddings, behavioral engagement ratios, network graph reciprocity, and image forensics.
 * **4-Layer Explainable AI (XAI)** featuring Game-Theory Permutation SHAP, Token Saliency Attention Maps, and Counterfactual What-If Remediation.
 * **Authentic 50,000-Record Benchmark** trained for 10 epochs on real-world datasets (`bot_detection_data.csv`) with anti-shortcut regularization (**80.96% Accuracy, 0.891 ROC-AUC**).
-* **Sub-Second Batch Processing** capable of evaluating hundreds of profiles in seconds with zero memory leaks.
+
+---
+
+## 🌐 Zero-Key Live Scraping Architecture
+
+One of the biggest innovations in ASEDF is its ability to **extract real live public social media profiles without requiring expensive enterprise API tokens ($100–$5,000/month)**.
+
+```
+                              ┌───────────────────────────────────────────────────────────┐
+                              │            User Inputs Live Handle (e.g. @sama)           │
+                              └─────────────────────────────┬─────────────────────────────┘
+                                                            │
+         ┌──────────────────────────────────────────────────┴──────────────────────────────────────────────────┐
+         ▼                                                                                                     ▼
+  STRATEGY 1: Official API v2 (Optional)                                                STRATEGY 2: Zero-Key Guest GraphQL Protocol
+  ──────────────────────────────────────                                                ───────────────────────────────────────────
+  • Checks `.env` for `TWITTER_BEARER_TOKEN`.                                           • Sits directly in X.com's unauthenticated
+  • If present, queries official X endpoints.                                             public browser flow ($0 API cost).
+  • If absent or rate-limited (HTTP 402/429),                                           • 1. Activates anonymous guest session:
+    seamlessly falls back to Strategy 2.                                                   `POST api.twitter.com/1.1/guest/activate.json`
+                                                                                        • 2. Receives short-lived `X-Guest-Token`.
+                                                                                        • 3. Queries internal GraphQL UserByScreenName:
+                                                                                           `twitter.com/i/api/graphql/.../UserByScreenName`
+                                                                                        • 4. Queries GraphQL UserTimeline:
+                                                                                           `twitter.com/i/api/graphql/.../UserTweets`
+```
+
+### 🔍 How the Zero-Key Ingestion Works Technically:
+
+1. **Anonymous Guest Token Activation (`_get_x_guest_token`):**
+   * Twitter/X allows web browsers to view public profiles without logging in.
+   * Our backend replicates this by issuing an unauthenticated POST request to `https://api.twitter.com/1.1/guest/activate.json` using X's public web client application credentials.
+   * Twitter returns a short-lived **`guest_token`** valid for public queries.
+
+2. **Reverse-Engineered GraphQL Extraction (`fetch_live_twitter_profile`):**
+   * Using the `X-Guest-Token`, the processor queries Twitter's internal GraphQL endpoint:
+     ```http
+     GET https://twitter.com/i/api/graphql/NimuplG1OB7Fd2btCLdBOw/UserByScreenName?variables={"screen_name":"username"}
+     ```
+   * Extracts verified badges, exact follower/following counts, account creation timestamps, bio text, and avatar image URLs.
+
+3. **Timeline & Post Analytics Extraction (`UserTweets`):**
+   * Using the extracted `rest_id`, the system queries `https://twitter.com/i/api/graphql/.../UserTweets` to fetch the user's latest 10–20 tweets, retweets, replies, and like counts for forensic NLP and engagement rate calculation.
+
+4. **Multi-Platform Synthesizer Fallback:**
+   * If a target platform endpoint is temporarily rate-limited or offline, the engine invokes a deterministic synthesizer so batch evaluations never crash or hang.
 
 ---
 
@@ -292,14 +340,14 @@ To prevent evidence tampering and create legally admissible cybercrime dossiers:
 ### ❓ Q2: *"What if an attacker buys 50,000 followers and uses ChatGPT for human-like tweets?"*
 > **Answer:** *"Follower count is only 1 of 54 features. Our **Ghost Follower Engagement Ratio** detects that 50k followers with 0 likes has an engagement rate $< 0.0001\%$, while our **Graph Topology module** detects zero mutual reciprocity, flagging the account regardless of follower numbers or text fluency."*
 
-### ❓ Q3: *"Why use DistilBERT instead of calling GPT-4 API?"*
+### ❓ Q3: *"How does your tool scrape Twitter without paying for the $5,000/month API?"*
+> **Answer:** *"Our ingestion engine uses an **unauthenticated guest token activation protocol** (`POST api.twitter.com/1.1/guest/activate.json`), which is the exact public method x.com uses in web browsers. It queries Twitter's internal GraphQL endpoints (`UserByScreenName` and `UserTweets`) directly at **$0 API cost** with automatic multi-platform fallback."*
+
+### ❓ Q4: *"Why use DistilBERT instead of calling GPT-4 API?"*
 > **Answer:** *"GPT-4 calls cost ~$0.01 per tweet with 500ms–1500ms latency, making high-speed processing impossible. Our fine-tuned DistilBERT is **260 MB, runs locally on CPU with batched matrix inference in ~3.8 ms at $0 API cost**."*
 
-### ❓ Q4: *"How does Explainable AI (SHAP) help a real SOC (Security Operations Center) analyst?"*
+### ❓ Q5: *"How does Explainable AI (SHAP) help a real SOC (Security Operations Center) analyst?"*
 > **Answer:** *"In a SOC, analysts face alert fatigue. A binary 'Bot Detected' alert requires 15 minutes of manual investigation. Our **SHAP Waterfall & Token Saliency map** instantly highlights the exact evidence (+0.34 from unverified Telegram link, +0.28 from phishing text tokens), cutting analyst triage time **from 15 minutes to 10 seconds**."*
-
-### ❓ Q5: *"How do you handle false positives for innocent human creators?"*
-> **Answer:** *"We use confidence tiering: accounts below 70% risk are never blocked. If flagged, the user and SOC team receive a transparent **Counterfactual Remediation breakdown** showing exactly which parameters (e.g. verifying phone or email) will clear the score."*
 
 ---
 
