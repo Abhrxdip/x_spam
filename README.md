@@ -31,6 +31,66 @@ An AI-powered multi-modal threat detection platform designed for **Smart India H
 
 ---
 
+## 🔄 System Architecture & Working Process
+
+The **ASEDF Pipeline** operates in 5 modular processing stages:
+
+```mermaid
+flowchart TD
+    A["1. User Profile Input<br/>(@handle or https://x.com/user)"] --> B["2. Data Ingestion Module<br/>(Live X Syndication Scraper / Fail-Safe Engine)"]
+    B --> C["3. 4-Tier Multi-Modal Feature Extractor<br/>(42 Extracted Metrics)"]
+    
+    subgraph Feature Extractor Engine
+        C1["Account Metrics<br/>(Age, Ratios, Verified)"]
+        C2["Content & NLP<br/>(Keywords, Regex, Mentions)"]
+        C3["Timeline Activity<br/>(Posting Freq, Duplicates, Links)"]
+        C4["Network & Image<br/>(Isolation Index, Avatar Placeholder)"]
+    end
+    
+    C --> C1 & C2 & C3 & C4
+    C1 & C2 & C3 & C4 --> D["4. ML Classifier Ensemble & XAI Engine<br/>(Gradient Boosting Model + Sigmoidal Calibration)"]
+    
+    D --> E1["Threat Probability Score<br/>(0.0% to 99.9%)"]
+    D --> E2["Explainable Threat Indicators<br/>(Mention Spam, Phishing Links, etc.)"]
+    D --> E3["Security Analyst Recommendations"]
+    
+    E1 & E2 & E3 --> F["5. Web UI Presentation Layer<br/>(Dashboard / Data Explorer / Results)"]
+```
+
+### Detailed Execution Steps
+
+#### Step 1: Input Normalization & Live Data Ingestion
+- **Input Parsing**: Handles inputs in any format (e.g., `https://x.com/username`, `https://twitter.com/username`, `@username`, or `username`).
+- **Live X/Twitter Scraping**: Connects to public X/Twitter syndication endpoints to fetch **real live user metadata** (Display Name, Followers, Following, Tweet Timeline, Creation Date, Verified Status, Profile Image).
+- **Fail-Safe Engine**: If external network rate-limiting occurs, the system smoothly switches to deterministic MD5-seeded feature extraction to guarantee continuous uptime during hackathon demonstrations.
+
+#### Step 2: 4-Tier Multi-Modal Feature Extraction
+Extracted into a unified 42-feature numerical vector:
+1. **Account Metrics**: Account age in days, follower count, following count, followers-to-following ratio, verification badge flag.
+2. **Content & NLP Analysis**: Bio character length, external bio links, suspicious crypto/phishing keyword frequency (`airdrop`, `giveaway`, `seed phrase`, `usdt`, `claim`), regex pattern matches (EVM wallet addresses `0x...`, shortened URLs `bit.ly`, `t.me`).
+3. **Mention & Posting Analytics**: Unsolicited `@username` mention count, average mentions per tweet, hashtag stuffing ratio (`#free #crypto`), duplicate post text ratio, external link post ratio.
+4. **Network & Image Signals**: Network isolation index, mutual connection density, default avatar placeholder flag, AI synthetic image score.
+
+#### Step 3: Machine Learning Model Inference
+- **Preprocessing & Scaling**: Encodes categorical variables via `LabelEncoder` and normalizes feature vectors using `StandardScaler`.
+- **Ensemble ML Scoring**: Passes the preprocessed feature vector through the trained **Gradient Boosting Classifier** (`models/threat_detector_model.pkl`).
+- **Sigmoidal Calibration**: Maps raw model outputs to high-confidence probability bounds (>99.0% for malicious profiles, <1.0% for genuine accounts).
+
+#### Step 4: Explainable AI (XAI) & Indicator Generator
+- Analyzes feature weights to generate transparent, human-understandable evidence badges:
+  - 🚨 **Mention Spam Attack**: *"Frequent @username tagging in posts (avg 3.5 mentions/post)"*
+  - 🚨 **Phishing Link Campaign**: *"High percentage of posts (67%) containing external links"*
+  - 🚨 **Follower Imbalance**: *"Following 100x more accounts than followers"*
+  - 🚨 **Default Profile Image**: *"Using placeholder/default avatar image"*
+- Produces actionable recommendations for security incident response teams.
+
+#### Step 5: Dashboard Presentation
+- **Analysis Results View (`/results`)**: Displays real-time risk scores, visual gauges, threat classifications, indicator cards, and feature weights.
+- **Data Explorer Dashboard (`/data-explorer`)**: Visualizes 5,000+ benchmark dataset records with interactive Chart.js charts, instant search, filtering, and modal inspection.
+- **Model Leaderboard (`/model-info`)**: Compares test performance metrics across all 13 ML classifiers.
+
+---
+
 ## 🚀 Quick Start Guide
 
 ### Prerequisites
