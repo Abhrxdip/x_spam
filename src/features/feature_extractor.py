@@ -95,7 +95,9 @@ class UnifiedFeatureExtractor:
         
         if creation_date_str:
             try:
-                for fmt in ["%Y-%m-%d", "%Y-%m-%dT%H:%M:%S", "%Y/%m/%d"]:
+                # Also handle Twitter's raw date: "Tue Jun 02 20:12:29 +0000 2009"
+                for fmt in ["%Y-%m-%d", "%Y-%m-%dT%H:%M:%S", "%Y/%m/%d",
+                            "%a %b %d %H:%M:%S +0000 %Y"]:
                     try:
                         creation_date = datetime.strptime(creation_date_str, fmt)
                         account_age_days = (datetime.now() - creation_date).days
@@ -436,13 +438,22 @@ class UnifiedFeatureExtractor:
             return 0.5
         
         timestamps = []
+        # Twitter live API returns timestamps like "Thu Aug 14 12:00:00 +0000 2025"
+        # Synthetic/fallback data uses ISO format "2025-08-14T12:00:00"
+        _TS_FORMATS = [
+            "%Y-%m-%dT%H:%M:%S",
+            "%a %b %d %H:%M:%S +0000 %Y",
+            "%Y-%m-%d %H:%M:%S",
+        ]
         for post in posts:
             if isinstance(post, dict) and 'timestamp' in post:
-                try:
-                    ts = datetime.strptime(post['timestamp'], "%Y-%m-%dT%H:%M:%S")
-                    timestamps.append(ts)
-                except:
-                    continue
+                for fmt in _TS_FORMATS:
+                    try:
+                        ts = datetime.strptime(post['timestamp'], fmt)
+                        timestamps.append(ts)
+                        break
+                    except (ValueError, TypeError):
+                        continue
         
         if len(timestamps) < 2:
             return 0.5
@@ -473,13 +484,20 @@ class UnifiedFeatureExtractor:
             return 0.5
         
         hours = []
+        _TS_FORMATS = [
+            "%Y-%m-%dT%H:%M:%S",
+            "%a %b %d %H:%M:%S +0000 %Y",
+            "%Y-%m-%d %H:%M:%S",
+        ]
         for post in posts:
             if isinstance(post, dict) and 'timestamp' in post:
-                try:
-                    ts = datetime.strptime(post['timestamp'], "%Y-%m-%dT%H:%M:%S")
-                    hours.append(ts.hour)
-                except:
-                    continue
+                for fmt in _TS_FORMATS:
+                    try:
+                        ts = datetime.strptime(post['timestamp'], fmt)
+                        hours.append(ts.hour)
+                        break
+                    except (ValueError, TypeError):
+                        continue
         
         if len(hours) < 3:
             return 0.5

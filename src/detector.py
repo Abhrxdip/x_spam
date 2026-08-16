@@ -418,17 +418,22 @@ class UnifiedThreatDetector:
         # Follower ratio
         ratio = features.get('followers_to_following_ratio', 1)
         if ratio < 0.1:
+            # Guard: ratio can be exactly 0 when followers_count is 0
+            if ratio > 0:
+                imbalance_desc = f'Following {int(1/ratio)}x more accounts than followers'
+            else:
+                imbalance_desc = 'Account has no followers despite active following'
             indicators.append({
                 'type': 'follower_imbalance',
                 'severity': 'high',
-                'description': f'Following {int(1/ratio)}x more accounts than followers',
+                'description': imbalance_desc,
                 'value': ratio
             })
         elif ratio < 0.5:
             indicators.append({
                 'type': 'follower_imbalance',
                 'severity': 'medium',
-                'description': f'Following significantly more accounts than followers',
+                'description': 'Following significantly more accounts than followers',
                 'value': ratio
             })
         
