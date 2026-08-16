@@ -6,14 +6,18 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Python-3.12-3776AB?style=for-the-badge&logo=python&logoColor=white"/>
+  <a href="https://asedf-threat-detector.onrender.com"><img src="https://img.shields.io/badge/Live_Demo-Render_Cloud-6366F1?style=for-the-badge&logo=render&logoColor=white"/></a>
+  <img src="https://img.shields.io/badge/Python-3.11-3776AB?style=for-the-badge&logo=python&logoColor=white"/>
   <img src="https://img.shields.io/badge/Flask-3.0-000000?style=for-the-badge&logo=flask&logoColor=white"/>
-  <img src="https://img.shields.io/badge/PyTorch-2.13-EE4C2C?style=for-the-badge&logo=pytorch&logoColor=white"/>
+  <img src="https://img.shields.io/badge/PyTorch-2.1-EE4C2C?style=for-the-badge&logo=pytorch&logoColor=white"/>
   <img src="https://img.shields.io/badge/Transformers-5.15-FFD21E?style=for-the-badge&logo=huggingface&logoColor=black"/>
-  <img src="https://img.shields.io/badge/Scikit--Learn-1.3-F7931E?style=for-the-badge&logo=scikit-learn&logoColor=white"/>
   <img src="https://img.shields.io/badge/DistilBERT-97.5%25_Acc-4B8BBE?style=for-the-badge"/>
-  <img src="https://img.shields.io/badge/ML_Champion-98.9%25_Acc-008080?style=for-the-badge"/>
-  <img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge"/>
+  <img src="https://img.shields.io/badge/AdaBoost-89.8%25_Acc-008080?style=for-the-badge"/>
+  <img src="https://img.shields.io/badge/XAI-SHAP_%2B_LIME_%2B_Counterfactuals-8A2BE2?style=for-the-badge"/>
+</p>
+
+<p align="center">
+  🌐 <b>Live Public Web Application:</b> <a href="https://asedf-threat-detector.onrender.com"><b>https://asedf-threat-detector.onrender.com</b></a>
 </p>
 
 ---
