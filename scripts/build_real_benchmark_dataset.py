@@ -128,7 +128,7 @@ def load_real_profiles() -> List[Dict[str, Any]]:
     return all_profiles
 
 def extract_dataset_features(profiles: List[Dict[str, Any]]) -> pd.DataFrame:
-    """Extract 44 multi-modal features from all profiles."""
+    """Extract 44 multi-modal features while neutralizing shortcut bias."""
     extractor = UnifiedFeatureExtractor()
     records = []
     
@@ -152,21 +152,34 @@ def extract_dataset_features(profiles: List[Dict[str, Any]]) -> pd.DataFrame:
         }
         
         feats = extractor.extract_features(profile_data)
+        
+        # Shortcut Neutralization: Mask verified badge to prevent shortcut learning
+        feats['Twitter.Verified'] = 'no'
         feats['is_threat'] = p['is_threat']
         feats['dataset_source'] = p.get('source', 'unknown')
         records.append(feats)
         
     df = pd.DataFrame(records)
-    logger.info(f"Feature matrix complete! Shape: {df.shape}")
-    logger.info(f"Ground Truth Distribution:\n{df['is_threat'].value_counts(normalize=True).round(4) * 100}%")
-    return df
+    
+    # Balance dataset: Downsample majority class to prevent class bias
+    threats = df[df['is_threat'] == 1]
+    humans = df[df['is_threat'] == 0]
+    min_count = min(len(threats), len(humans))
+    
+    balanced_df = pd.concat([
+        threats.sample(n=min_count, random_state=42),
+        humans.sample(n=min_count, random_state=42)
+    ]).sample(frac=1.0, random_state=42).reset_index(drop=True)
+    
+    logger.info(f"Balanced Feature Matrix: {len(balanced_df)} samples ({min_count} threats, {min_count} humans)")
+    return balanced_df
 
 def train_and_benchmark(df: pd.DataFrame):
-    """Train and evaluate 13 ML models on real dataset."""
-    logger.info("Initializing ModelTrainer on real academic benchmark dataset...")
+    """Train and evaluate 13 ML models on balanced real dataset."""
+    logger.info("Initializing ModelTrainer with anti-shortcut regularization...")
     trainer = ModelTrainer()
     
-    # Drop dataset_source metadata column if present
+    # Drop dataset_source metadata column
     feature_df = df.drop(columns=['dataset_source'], errors='ignore')
     
     # Prepare data
@@ -175,8 +188,10 @@ def train_and_benchmark(df: pd.DataFrame):
     # Train and evaluate all 13 models
     results = trainer.train_and_compare(X, y, test_size=0.2)
     
-    # Train best champion model
-    best_model = trainer.train_best_model(X, y)
+    # Select champion model
+    best_name = max(results.keys(), key=lambda k: results[k]['f1'])
+    trainer.best_model_name = best_name
+    trainer.train_best_model(X, y)
     
     # Save model bundle
     save_path = trainer.save_model('threat_detector_model.pkl')
@@ -185,12 +200,12 @@ def train_and_benchmark(df: pd.DataFrame):
     # Save training dataset
     out_csv = os.path.join(PROJECT_ROOT, 'data', 'training_data.csv')
     feature_df.to_csv(out_csv, index=False)
-    logger.info(f"Saved real benchmark dataset to: {out_csv} ({len(feature_df)} profiles)")
+    logger.info(f"Saved balanced real benchmark dataset to: {out_csv} ({len(feature_df)} profiles)")
     
     # Print clean benchmark leaderboard
     df_res = pd.DataFrame(results).T.sort_values(by='accuracy', ascending=False)
     print("\n" + "="*70)
-    print("  REAL ACADEMIC BENCHMARK MODEL EVALUATION LEADERBOARD")
+    print("  BALANCED ANTI-SHORTCUT REAL BENCHMARK EVALUATION LEADERBOARD")
     print("="*70)
     print(df_res.to_string())
     print("="*70)
@@ -200,3 +215,4 @@ if __name__ == '__main__':
     profiles = load_real_profiles()
     df = extract_dataset_features(profiles)
     train_and_benchmark(df)
+

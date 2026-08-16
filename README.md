@@ -50,7 +50,7 @@ Modern social networks (such as X/Twitter, Instagram, and Facebook) are heavily 
 4. **API Paywalls**: Official platform APIs (such as X API v2) cost $100+/month or restrict rate limits, rendering real-time citizen-facing detection tools inaccessible.
 
 ### The ASEDF Solution:
-The **Adaptive Social Engineering Defense Framework (ASEDF)** is an open-source, multi-modal threat intelligence platform that takes any profile URL or username, scrapes live public data through an internal guest-token flow without API keys, extracts 44 multi-domain features, classifies textual intent using a custom **Fine-Tuned DistilBERT Transformer (97.5% Accuracy)**, and evaluates threat vectors using a **HistGradientBoosting Classifier (91.8% Accuracy, 0.9791 ROC-AUC)** trained on real-world academic benchmarks (`Botwiki`, `Cresci-RTbust`, `Verified-2019`, `TwiBot-20`) — returning explainable security intelligence in under 3 seconds.
+The **Adaptive Social Engineering Defense Framework (ASEDF)** is an open-source, multi-modal threat intelligence platform that takes any profile URL or username, scrapes live public data through an internal guest-token flow without API keys, extracts 44 multi-domain features, classifies textual intent using a custom **Fine-Tuned DistilBERT Transformer (97.5% Accuracy)**, and evaluates threat vectors using an **AdaBoost Ensemble Classifier (89.8% Accuracy, 0.9569 ROC-AUC)** trained with anti-shortcut regularization on real-world academic benchmarks (`Botwiki`, `Cresci-RTbust`, `Verified-2019`, `TwiBot-20`) — returning explainable security intelligence in under 3 seconds.
 
 ---
 
@@ -82,7 +82,7 @@ ASEDF implements an end-to-end, multi-layered threat evaluation pipeline that di
                                         ▼
  ┌─────────────────────────────────────────────────────────────────────────────┐
  │ PHASE 4: 13-Model Machine Learning Ensemble & Classification                │
- │ • Standardizes 44-D vector -> Evaluates through Champion HistGradientBoost  │
+ │ • Standardizes 44-D vector -> Evaluates through Champion AdaBoost Ensemble  │
  │ • Generates Calibrated Threat Probability Score (0.0% - 100.0%)             │
  │ • Assigns Threat Category: Legitimate, Spam, Bot, Phishing, Fake Profile    │
  └──────────────────────────────────────┬──────────────────────────────────────┘
@@ -153,22 +153,22 @@ Unlike primitive regex filters that fail when attackers rephrase sentences or us
 ### 4️⃣ Phase 4: Machine Learning Model Benchmark Leaderboard (13 Models Evaluated)
 *Files: `scripts/build_real_benchmark_dataset.py`, `src/models/train_model.py`*
 
-Trained and evaluated on **3,398 real-world ground-truth profiles** from gold-standard academic benchmarks (**Botwiki-2019**, **Cresci-RTbust-2019**, **Verified-2019**, and **TwiBot-20**). All metrics evaluated on a 20% holdout test set (680 real accounts):
+Trained and evaluated on **2,102 strictly balanced real-world profiles** (1,051 Threats / 1,051 Humans) from academic benchmarks (**Botwiki-2019**, **Cresci-RTbust-2019**, **Verified-2019**, and **TwiBot-20**) with shortcut neutralization (verified badge bias masked). All metrics evaluated on a 20% holdout test set (421 real accounts):
 
 | Rank | Model Architecture | Test Accuracy | Precision | Recall | F1-Score | ROC-AUC | Architectural Evaluation & Analysis |
 |---|---|---|---|---|---|---|---|
-| 🥇 | **Histogram Gradient Boosting (Champion)** | **91.76%** | **0.8929** | **0.8333** | **0.8621** | **0.9791** | **Optimal Production Champion**: Histogram binning handles non-linear feature interactions with fast convergence and top ROC-AUC. |
-| 🥈 | **Gradient Boosting Classifier** | **91.32%** | 0.8794 | 0.8333 | 0.8557 | 0.9812 | Highest ROC-AUC (0.9812) across real-world social bot topologies. |
-| 🥉 | **Random Forest Classifier** | **91.18%** | 0.8606 | 0.8524 | 0.8565 | 0.9777 | Robust bagging ensemble with strong balance between precision and recall. |
-| 4 | **Decision Tree Classifier** | **91.18%** | 0.8676 | 0.8429 | 0.8551 | 0.9692 | Pruned decision tree rules capturing key threshold splits. |
-| 5 | **Naive Bayes (Gaussian)** | **91.18%** | 0.7799 | 0.9952 | 0.8745 | 0.9678 | Near-perfect recall on real-world bot signatures (0.9952). |
-| 6 | **Neural Network (MLP)** | **91.03%** | 0.8016 | 0.9429 | 0.8665 | 0.9720 | Multi-Layer Perceptron (64, 32) deep feature representation. |
-| 7 | **Support Vector Machine (RBF)** | **90.74%** | 0.7928 | 0.9476 | 0.8633 | 0.9597 | Soft-margin hyperplane separation in multi-modal feature space. |
-| 8 | **Logistic Regression** | **90.74%** | 0.7816 | 0.9714 | 0.8662 | 0.9779 | Regularized linear baseline with 0.9714 recall. |
-| 9 | **Linear Discriminant (LDA)** | **90.59%** | 0.7786 | 0.9714 | 0.8644 | 0.9698 | Continuous feature discriminant projection. |
-| 10 | **AdaBoost Ensemble** | **90.00%** | 0.8901 | 0.7714 | 0.8265 | 0.9763 | High precision boosting over weak decision stumps. |
-| 11 | **K-Nearest Neighbors (KNN)** | **89.26%** | 0.8216 | 0.8333 | 0.8274 | 0.9629 | Distance-weighted metric clustering ($k=9$). |
-| 12 | **Extra Trees Classifier** | **75.88%** | 0.9792 | 0.2238 | 0.3643 | 0.9708 | Randomized trees; ultra-high precision (0.9792) with conservative recall. |
+| 🥇 | **AdaBoost Ensemble (Champion)** | **89.79%** | **0.8584** | **0.9524** | **0.9029** | **0.9569** | **Optimal Production Champion**: Adaptive sequential boosting on boundary profiles; 0.9524 recall on real botnets with 0.9569 ROC-AUC. |
+| 🥈 | **Decision Tree Classifier** | **89.55%** | 0.8705 | 0.9286 | 0.8986 | 0.9506 | Regularized decision tree capturing key threshold splits without memorization. |
+| 🥉 | **Gradient Boosting Classifier** | **89.07%** | 0.8727 | 0.9143 | 0.8930 | 0.9596 | Highest ROC-AUC (0.9596); sequential residual error correction. |
+| 4 | **Random Forest Classifier** | **88.84%** | 0.8498 | 0.9429 | 0.8939 | 0.9568 | Bagging ensemble averaging across 150 randomized trees with depth pruning. |
+| 5 | **Histogram Gradient Boosting** | **88.12%** | 0.8704 | 0.8952 | 0.8826 | 0.9563 | Histogram binning with L2 regularization penalty ($L2=2.0$). |
+| 6 | **K-Nearest Neighbors (KNN)** | **81.71%** | 0.8276 | 0.8000 | 0.8136 | 0.8851 | Distance-weighted metric clustering in normalized continuous feature space ($k=9$). |
+| 7 | **Neural Network (MLP)** | **75.53%** | 0.7772 | 0.7143 | 0.7444 | 0.8345 | Multi-Layer Perceptron (64, 32) deep feature representation with early stopping. |
+| 8 | **Logistic Regression** | **74.58%** | 0.6886 | 0.8952 | 0.7785 | 0.8892 | Regularized linear baseline with L2 penalty ($C=0.5$). |
+| 9 | **Support Vector Machine (RBF)** | **72.92%** | 0.6678 | 0.9095 | 0.7702 | 0.8802 | Soft-margin hyperplane separation with radial basis function kernel ($C=0.8$). |
+| 10 | **Extra Trees Classifier** | **65.32%** | 0.8333 | 0.3810 | 0.5229 | 0.7859 | High precision (0.8333) with conservative recall on edge-case profiles. |
+| 11 | **Linear Discriminant (LDA)** | **63.66%** | 0.7767 | 0.3810 | 0.5112 | 0.8110 | Linear continuous feature projection; struggles with non-linear social behaviors. |
+| 12 | **Naive Bayes (Gaussian)** | **60.57%** | 0.5591 | 0.9905 | 0.7148 | 0.9058 | Probabilistic model under independence assumption; near-zero false negatives. |
 
 ---
 
