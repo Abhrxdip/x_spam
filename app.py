@@ -193,28 +193,35 @@ def data_explorer():
     
     data_path = os.path.join(os.path.dirname(__file__), 'data', 'training_data.csv')
     if not os.path.exists(data_path):
-        from src.models.train_model import generate_synthetic_training_data
-        df = generate_synthetic_training_data(5000)
-        os.makedirs(os.path.dirname(data_path), exist_ok=True)
-        df.to_csv(data_path, index=False)
+        from scripts.train_50k_model import load_realistic_dataset
+        raw_path = os.path.join(os.path.dirname(__file__), 'data', 'bot_detection_data.csv')
+        df = load_realistic_dataset(raw_path) if os.path.exists(raw_path) else pd.DataFrame()
+        if not df.empty:
+            df.to_csv(data_path, index=False)
     else:
         df = pd.read_csv(data_path)
     
     total_records = len(df)
     threat_count = int((df['is_threat'] == 1).sum()) if 'is_threat' in df.columns else 0
     threat_percent = round((threat_count / max(1, total_records)) * 100, 1)
-    bot_count = int((df['Account.Type'] == 'bot').sum()) if 'Account.Type' in df.columns else 0
+    bot_count = int((df['is_threat'] == 1).sum()) if 'is_threat' in df.columns else 0
     avg_age = int(df['account_age_days'].mean()) if 'account_age_days' in df.columns else 0
     
-    dataset_json = df.to_json(orient='records')
+    # Pass a representative balanced sample (1,500 rows) for smooth high-speed browser rendering
+    sample_df = pd.concat([
+        df[df['is_threat'] == 1].head(750),
+        df[df['is_threat'] == 0].head(750)
+    ]).sample(frac=1, random_state=42) if len(df) > 1500 else df
+    
+    dataset_json = sample_df.to_json(orient='records')
     
     return render_template(
         'data_explorer.html',
-        total_records=total_records,
-        threat_count=threat_count,
+        total_records=f"{total_records:,}",
+        threat_count=f"{threat_count:,}",
         threat_percent=threat_percent,
-        bot_count=bot_count,
-        avg_age=avg_age,
+        bot_count=f"{bot_count:,}",
+        avg_age=f"{avg_age:,}",
         dataset_json=dataset_json
     )
 
