@@ -27,25 +27,27 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 
 def download_kaggle_dataset() -> Optional[str]:
-    """Download Twitter Spam dataset from Kaggle via kagglehub if authenticated."""
+    """Download Twitter Spam dataset from Kaggle via kagglehub using Kaggle API credentials."""
     import kagglehub
+    from dotenv import load_dotenv
+    load_dotenv()
     
-    # Check if Kaggle credentials exist
+    # Check if Kaggle credentials exist in environment or ~/.kaggle/kaggle.json
     kaggle_config = os.path.expanduser('~/.kaggle/kaggle.json')
     has_creds = os.path.exists(kaggle_config) or ('KAGGLE_USERNAME' in os.environ and 'KAGGLE_KEY' in os.environ)
-    
+
     if not has_creds:
-        logger.info("Kaggle API credentials (kaggle.json or KAGGLE_USERNAME/KAGGLE_KEY) not detected.")
+        logger.info("Kaggle credentials not found in env (KAGGLE_USERNAME / KAGGLE_KEY) or ~/.kaggle/kaggle.json")
         logger.info("Proceeding with DeBERTa Transformer multi-modal feature dataset generator...")
         return None
 
-    logger.info("Attempting to download Kaggle dataset via kagglehub...")
+    logger.info("Downloading Kaggle Twitter Spam dataset via kagglehub API...")
     try:
         path = kagglehub.dataset_download('lokeshparab/twitter-spam-dataset')
         logger.info(f"Successfully downloaded dataset files to: {path}")
         return path
     except Exception as e:
-        logger.info(f"Kaggle download bypass ({str(e)}). Proceeding with DeBERTa feature engine...")
+        logger.info(f"Kaggle API download note ({str(e)}). Proceeding with DeBERTa feature engine...")
         return None
 
 def process_and_train_kaggle_data(data_path: str):
