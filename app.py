@@ -132,7 +132,18 @@ def batch_analysis():
                 # Process the batch file
                 results = detector.batch_analyze_from_file(filepath, platform)
                 
-                # Store batch results in server-side memory store
+                # Clean up uploaded temp file to conserve disk space
+                try:
+                    if os.path.exists(filepath):
+                        os.remove(filepath)
+                except Exception:
+                    pass
+                
+                # Store batch results in server-side memory store with LRU pruning (max 5 batches)
+                while len(BATCH_RESULTS_STORE) >= 5:
+                    oldest_k = next(iter(BATCH_RESULTS_STORE))
+                    del BATCH_RESULTS_STORE[oldest_k]
+                    
                 batch_id = str(uuid.uuid4())
                 BATCH_RESULTS_STORE[batch_id] = {
                     'results': results,
