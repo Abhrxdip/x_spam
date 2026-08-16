@@ -126,57 +126,86 @@ def _get_seeded_rng(username: str):
     seed_val = int(hashlib.md5(username.lower().strip().encode('utf-8')).hexdigest()[:8], 16)
     return random.Random(seed_val)
 
-def fetch_live_twitter_profile(username: str) -> Optional[Dict[str, Any]]:
+def fetch_official_x_api_v2_profile(username: str) -> Optional[Dict[str, Any]]:
     """
-    Attempt to fetch real live public X/Twitter profile metrics using public syndication & crawler headers.
+    Fetch user profile metadata & tweets using official X API v2 Bearer Token.
+    Reads token safely from environment variable X_BEARER_TOKEN or .env file.
     """
     import urllib.request
     import json
-    import re
+    from dotenv import load_dotenv
+    load_dotenv()
+    
+    bearer_token = os.getenv('X_BEARER_TOKEN')
+    if not bearer_token:
+        return None
 
-    # Strategy 1: Social Crawler Open Graph Header
     try:
-        url = f"https://x.com/{username}"
+        url = f"https://api.twitter.com/2/users/by/username/{username}?user.fields=created_at,description,public_metrics,verified,profile_image_url"
         req = urllib.request.Request(
             url, 
-            headers={'User-Agent': 'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uinform.html)'}
+            headers={'Authorization': f'Bearer {bearer_token}'}
         )
         with urllib.request.urlopen(req, timeout=5) as resp:
-            html = resp.read().decode('utf-8')
+            data = json.loads(resp.read().decode('utf-8'))
+            user_info = data.get('data', {})
+            if user_info:
+                user_id = user_info.get('id')
+                metrics = user_info.get('public_metrics', {})
+                
+                # Fetch recent tweets if user ID exists
+                posts = []
+                if user_id:
+                    try:
+                        tweets_url = f"https://api.twitter.com/2/users/{user_id}/tweets?tweet.fields=created_at,public_metrics&max_results=10"
+                        t_req = urllib.request.Request(tweets_url, headers={'Authorization': f'Bearer {bearer_token}'})
+                        with urllib.request.urlopen(t_req, timeout=5) as t_resp:
+                            t_data = json.loads(t_resp.read().decode('utf-8'))
+                            for t in t_data.get('data', []):
+                                p_metrics = t.get('public_metrics', {})
+                                posts.append({
+                                    'text': t.get('text', ''),
+                                    'likes': p_metrics.get('like_count', 0),
+                                    'retweets': p_metrics.get('retweet_count', 0),
+                                    'replies': p_metrics.get('reply_count', 0),
+                                    'timestamp': t.get('created_at', '')
+                                })
+                    except Exception as te:
+                        logger.info(f"X API v2 tweets fetch note: {str(te)}")
 
-        if 'og:title' in html:
-            title_match = re.search(r'property="og:title"\s+content="([^"]+)"', html)
-            desc_match = re.search(r'property="og:description"\s+content="([^"]+)"', html)
-            
-            display_name = username
-            if title_match:
-                title = title_match.group(1)
-                display_name = title.split(' (')[0] if ' (' in title else title.replace(' / X', '')
-
-            bio = f"Official X handle @{username}"
-            if desc_match:
-                bio = desc_match.group(1)
-
-            logger.info(f"Successfully fetched live X OpenGraph profile for '{username}'")
-            return {
-                'username': username,
-                'display_name': display_name,
-                'bio': bio,
-                'followers_count': 24204 if 'smrati' in username.lower() else 12500,
-                'following_count': 1505 if 'smrati' in username.lower() else 450,
-                'posts_count': 4346 if 'smrati' in username.lower() else 1200,
-                'profile_pic_url': f"https://unavatar.io/x/{username}",
-                'verified': False,
-                'external_url': f"https://x.com/{username}",
-                'posts': [
-                    {'text': f"Latest updates and tweets from @{username}", 'likes': 45, 'retweets': 12, 'timestamp': '2026-08-16'},
-                    {'text': bio, 'likes': 30, 'retweets': 5, 'timestamp': '2026-08-15'}
-                ]
-            }
+                logger.info(f"Successfully fetched live X API v2 profile for '{username}'")
+                return {
+                    'username': user_info.get('username', username),
+                    'display_name': user_info.get('name', username),
+                    'bio': user_info.get('description', f"Official X handle @{username}"),
+                    'followers_count': metrics.get('followers_count', 0),
+                    'following_count': metrics.get('following_count', 0),
+                    'posts_count': metrics.get('tweet_count', 0),
+                    'profile_pic_url': user_info.get('profile_image_url', ''),
+                    'verified': user_info.get('verified', False),
+                    'creation_date': user_info.get('created_at', ''),
+                    'external_url': f"https://x.com/{username}",
+                    'posts': posts
+                }
     except Exception as e:
-        logger.info(f"OpenGraph crawler bypass for '{username}': {str(e)}")
+        logger.info(f"Official X API v2 fetch note for '{username}': {str(e)}")
 
-    # Strategy 2: Twitter Syndication Endpoint
+    return None
+
+def fetch_live_twitter_profile(username: str) -> Optional[Dict[str, Any]]:
+    """
+    Attempt to fetch real live public X/Twitter profile metrics and tweets.
+    Strategy 1: Official X API v2 with Bearer Token.
+    Strategy 2: Public Syndication Endpoint.
+    """
+    # Strategy 1: Official X API v2 (if token present in env)
+    v2_data = fetch_official_x_api_v2_profile(username)
+    if v2_data:
+        return v2_data
+
+    import urllib.request
+    import json
+    
     try:
         url = f"https://syndication.twitter.com/srv/timeline-profile/screen-name/{username}"
         req = urllib.request.Request(
@@ -221,10 +250,15 @@ def fetch_live_twitter_profile(username: str) -> Optional[Dict[str, Any]]:
                 user_data['posts'] = posts_data
                 user_data['bio'] = f"Official Twitter handle @{username}"
                 user_data['external_url'] = f"https://x.com/{username}"
-                logger.info(f"Successfully fetched live X/Twitter syndication profile for '{username}'")
+                user_data['sentiment_label'] = 'neutral'
+                user_data['country'] = 'US'
+                user_data['account_type'] = 'individual'
+                user_data['gender'] = 'unknown'
+                user_data['thread_entry_type'] = 'original'
+                logger.info(f"Successfully fetched live X/Twitter profile for '{username}'")
                 return user_data
     except Exception as e:
-        logger.info(f"Live Twitter syndication bypass for '{username}': {str(e)}")
+        logger.info(f"Live Twitter fetch bypass for '{username}': {str(e)}")
     
     return None
 
