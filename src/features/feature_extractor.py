@@ -265,20 +265,28 @@ class UnifiedFeatureExtractor:
         
         # Network isolation score
         if followers_count == 0 and following_count == 0:
-            features['network_isolation_score'] = 1.0
+            features['network_isolation_score'] = 0.40
         elif followers_count == 0:
-            features['network_isolation_score'] = 0.8
+            # Low following (<= 50) is normal for personal accounts/developers; high following (> 200) is bot-like
+            if following_count <= 50:
+                features['network_isolation_score'] = 0.25
+            elif following_count <= 200:
+                features['network_isolation_score'] = 0.50
+            else:
+                features['network_isolation_score'] = 0.85
         elif following_count == 0:
-            features['network_isolation_score'] = 0.3
+            features['network_isolation_score'] = 0.20
         else:
             ratio = followers_count / following_count
-            # Very high ratio (celebrity) or very low ratio (bot) both suspicious
             if ratio > 100:
-                features['network_isolation_score'] = 0.4
+                features['network_isolation_score'] = 0.30
             elif ratio < 0.1:
-                features['network_isolation_score'] = 0.9
+                if following_count <= 50:
+                    features['network_isolation_score'] = 0.30
+                else:
+                    features['network_isolation_score'] = 0.85
             else:
-                features['network_isolation_score'] = 0.5
+                features['network_isolation_score'] = 0.25
         
         # Mutual connection ratio
         followers = profile_data.get('followers', [])

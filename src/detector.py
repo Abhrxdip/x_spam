@@ -424,27 +424,27 @@ class UnifiedThreatDetector:
         
         # Check for specific threat types
         if features.get('is_ai_generated', 0) == 1 or features.get('is_default_image', 0) == 1:
-            if features.get('network_isolation_score', 0) > 0.7:
+            if features.get('network_isolation_score', 0) > 0.75 and features.get('following_count', 0) > 100:
                 return 'fake_profile'
         
-        if features.get('spam_pattern_matches', 0) > 3:
+        if features.get('spam_pattern_matches', 0) > 3 or features.get('nlp_phishing_score', 0) > 0.7:
             return 'spam'
         
-        if features.get('suspicious_content_score', 0) > 0.5:
-            if 'crypto' in str(features).lower() or 'bitcoin' in str(features).lower():
+        if features.get('suspicious_content_score', 0) > 0.5 or features.get('nlp_threat_class', 0) == 1:
+            if 'crypto' in str(features).lower() or 'bitcoin' in str(features).lower() or 'sol' in str(features).lower():
                 return 'scam'
             return 'spam'
         
         if features.get('Account.Type') == 'bot' or features.get('account_type') == 'bot':
             return 'bot'
         
-        if features.get('followers_to_following_ratio', 1) < 0.1 and features.get('posts_per_day', 0) > 10:
+        if features.get('followers_to_following_ratio', 1) < 0.05 and features.get('posts_per_day', 0) > 15 and features.get('following_count', 0) > 200:
             return 'bot'
         
         if probability >= self.threat_threshold:
             return 'suspicious'
         
-        return 'suspicious'
+        return 'legitimate'
     
     def _identify_suspicious_indicators(self, features: Dict[str, Any], 
                                         feature_importance: Dict[str, float]) -> List[Dict[str, Any]]:
@@ -459,32 +459,32 @@ class UnifiedThreatDetector:
             List of indicator dictionaries
         """
         indicators = []
+        following_cnt = features.get('following_count', 0)
         
         # Account age
         age = features.get('account_age_days', 365)
-        if age < 30:
+        if age < 14 and following_cnt > 50:
             indicators.append({
                 'type': 'new_account',
-                'severity': 'high' if age < 7 else 'medium',
-                'description': f'Account is only {age} days old',
+                'severity': 'high' if age < 3 else 'medium',
+                'description': f'Account is only {age} days old with rapid automated activity',
                 'value': age
             })
         
-        # Follower ratio
+        # Follower ratio (only flag if the account is following a substantial volume like >50 accounts)
         ratio = features.get('followers_to_following_ratio', 1)
-        if ratio < 0.1:
-            # Guard: ratio can be exactly 0 when followers_count is 0
+        if ratio < 0.1 and following_cnt > 50:
             if ratio > 0:
-                imbalance_desc = f'Following {int(1/ratio)}x more accounts than followers'
+                imbalance_desc = f'Following {int(1/ratio)}x more accounts than followers ({following_cnt} following)'
             else:
-                imbalance_desc = 'Account has no followers despite active following'
+                imbalance_desc = f'Account has no followers despite following {following_cnt} accounts'
             indicators.append({
                 'type': 'follower_imbalance',
-                'severity': 'high',
+                'severity': 'high' if following_cnt > 200 else 'medium',
                 'description': imbalance_desc,
                 'value': ratio
             })
-        elif ratio < 0.5:
+        elif ratio < 0.5 and following_cnt > 100:
             indicators.append({
                 'type': 'follower_imbalance',
                 'severity': 'medium',
@@ -513,7 +513,7 @@ class UnifiedThreatDetector:
             })
         
         # Default image
-        if features.get('is_default_image', 0) == 1:
+        if features.get('is_default_image', 0) == 1 and following_cnt > 50:
             indicators.append({
                 'type': 'default_profile_image',
                 'severity': 'medium',
