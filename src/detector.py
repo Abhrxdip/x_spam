@@ -430,20 +430,18 @@ class UnifiedThreatDetector:
         Returns:
             Threat type string
         """
-        if probability < self.suspicious_threshold:
+        if probability < self.threat_threshold:
             return 'legitimate'
         
-        # Check for specific threat types
+        # Check for specific threat types when probability >= threat_threshold
         if features.get('is_ai_generated', 0) == 1 or features.get('is_default_image', 0) == 1:
             if features.get('network_isolation_score', 0) > 0.75 and features.get('following_count', 0) > 100:
                 return 'fake_profile'
         
-        if features.get('spam_pattern_matches', 0) > 3 or features.get('nlp_phishing_score', 0) > 0.7:
-            return 'spam'
+        if features.get('nlp_threat_class', 0) == 1 or features.get('nlp_phishing_score', 0) > 0.7:
+            return 'scam'
         
-        if features.get('suspicious_content_score', 0) > 0.5 or features.get('nlp_threat_class', 0) == 1:
-            if 'crypto' in str(features).lower() or 'bitcoin' in str(features).lower() or 'sol' in str(features).lower():
-                return 'scam'
+        if features.get('spam_pattern_matches', 0) > 3 or features.get('suspicious_content_score', 0) > 0.6:
             return 'spam'
         
         if features.get('Account.Type') == 'bot' or features.get('account_type') == 'bot':
@@ -452,10 +450,7 @@ class UnifiedThreatDetector:
         if features.get('followers_to_following_ratio', 1) < 0.05 and features.get('posts_per_day', 0) > 15 and features.get('following_count', 0) > 200:
             return 'bot'
         
-        if probability >= self.threat_threshold:
-            return 'suspicious'
-        
-        return 'legitimate'
+        return 'suspicious'
     
     def _identify_suspicious_indicators(self, features: Dict[str, Any], 
                                         feature_importance: Dict[str, float]) -> List[Dict[str, Any]]:

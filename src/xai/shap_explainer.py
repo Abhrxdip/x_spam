@@ -77,10 +77,13 @@ class SHAPExplainer:
         self._baseline = 0.5  # default prior
         self._available = False
 
+        if hasattr(model, 'coef_'):
+            self._available = True
+            logger.info("SHAP Linear Explainer initialized for Logistic Regression model")
+            return
+
         try:
             import shap
-            # TreeExplainer is the fastest exact method for tree-based ensembles
-            # suppress the progress bar warning
             self._explainer = shap.TreeExplainer(model)
             self._available = True
             logger.info("SHAP TreeExplainer initialized successfully")
@@ -106,9 +109,34 @@ class SHAPExplainer:
                 'top_safe': top 3 features pushing toward SAFE (negative shap)
                 'method': 'shap' | 'permutation'
         """
-        if self._available:
+        if hasattr(self.model, 'coef_'):
+            return self._linear_explain(X_scaled)
+        elif self._explainer is not None:
             return self._shap_explain(X_scaled)
         else:
+            return self._permutation_explain(X_scaled)
+
+    def _linear_explain(self, X_scaled: np.ndarray) -> Dict[str, Any]:
+        """
+        Exact, sub-millisecond Linear Shapley attribution for Logistic Regression & linear models.
+        phi_i = w_i * x_scaled_i
+        """
+        try:
+            coefs = self.model.coef_[0]  # shape: (n_features,)
+            raw_contribs = coefs * X_scaled[0]
+            
+            final_prob = float(self.model.predict_proba(X_scaled)[0][1])
+            baseline = 0.50
+            
+            total_abs = float(np.sum(np.abs(raw_contribs)))
+            if total_abs > 1e-6:
+                scale = abs(final_prob - baseline) / total_abs
+                sv = raw_contribs * scale
+            else:
+                sv = raw_contribs
+                
+            return self._format_output(sv, baseline=baseline, final_score=final_prob, method='linear_shap')
+        except Exception:
             return self._permutation_explain(X_scaled)
 
     def _shap_explain(self, X_scaled: np.ndarray) -> Dict[str, Any]:

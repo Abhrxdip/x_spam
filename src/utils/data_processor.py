@@ -126,11 +126,17 @@ def _get_seeded_rng(username: str):
     seed_val = int(hashlib.md5(username.lower().strip().encode('utf-8')).hexdigest()[:8], 16)
     return random.Random(seed_val)
 
+_OFFICIAL_API_DISABLED = False
+
 def fetch_official_x_api_v2_profile(username: str) -> Optional[Dict[str, Any]]:
     """
     Fetch user profile metadata & tweets using official X API v2 Bearer Token.
     Reads token safely from environment variable X_BEARER_TOKEN or .env file.
     """
+    global _OFFICIAL_API_DISABLED
+    if _OFFICIAL_API_DISABLED:
+        return None
+
     import urllib.request
     import json
     from dotenv import load_dotenv
@@ -146,7 +152,7 @@ def fetch_official_x_api_v2_profile(username: str) -> Optional[Dict[str, Any]]:
             url, 
             headers={'Authorization': f'Bearer {bearer_token}'}
         )
-        with urllib.request.urlopen(req, timeout=5) as resp:
+        with urllib.request.urlopen(req, timeout=2) as resp:
             data = json.loads(resp.read().decode('utf-8'))
             user_info = data.get('data', {})
             if user_info:
@@ -159,7 +165,7 @@ def fetch_official_x_api_v2_profile(username: str) -> Optional[Dict[str, Any]]:
                     try:
                         tweets_url = f"https://api.twitter.com/2/users/{user_id}/tweets?tweet.fields=created_at,public_metrics&max_results=10"
                         t_req = urllib.request.Request(tweets_url, headers={'Authorization': f'Bearer {bearer_token}'})
-                        with urllib.request.urlopen(t_req, timeout=5) as t_resp:
+                        with urllib.request.urlopen(t_req, timeout=2) as t_resp:
                             t_data = json.loads(t_resp.read().decode('utf-8'))
                             for t in t_data.get('data', []):
                                 p_metrics = t.get('public_metrics', {})
@@ -188,7 +194,8 @@ def fetch_official_x_api_v2_profile(username: str) -> Optional[Dict[str, Any]]:
                     'posts': posts
                 }
     except Exception as e:
-        logger.info(f"Official X API v2 fetch note for '{username}': {str(e)}")
+        logger.info(f"Official X API v2 unavailable for '{username}' ({e}) — switching to zero-key guest scraper")
+        _OFFICIAL_API_DISABLED = True
 
     return None
 
