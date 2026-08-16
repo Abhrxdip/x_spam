@@ -225,10 +225,47 @@ def about():
 
 @app.route('/model-info')
 def model_info():
-    """Display model information and performance metrics."""
-    return render_template('model_info.html', 
-                         model_name=detector.model_name,
-                         threat_threshold=detector.threat_threshold)
+    """Display model information and live performance metrics from trained model."""
+    raw_metrics = getattr(detector.model_trainer, 'metrics', {}) or {}
+    
+    _FAMILIES = {
+        'AdaBoost': 'Boosting Ensemble',
+        'Gradient Boosting': 'Boosting Ensemble',
+        'HistGradientBoosting': 'Histogram Boosting',
+        'Random Forest': 'Bagging Ensemble',
+        'Extra Trees': 'Extremely Randomized',
+        'Decision Tree': 'Tree Classifier',
+        'KNN': 'Instance-Based',
+        'Neural Network (MLP)': 'Multi-Layer Perceptron',
+        'Logistic Regression': 'Linear Model',
+        'Support Vector Machine': 'Kernel SVM',
+        'Linear Discriminant': 'Discriminant',
+        'Naive Bayes': 'Probabilistic'
+    }
+    
+    leaderboard = []
+    for name, m in raw_metrics.items():
+        leaderboard.append({
+            'name': name,
+            'family': _FAMILIES.get(name, 'Machine Learning'),
+            'accuracy': m.get('accuracy', 0.0),
+            'accuracy_pct': f"{m.get('accuracy', 0.0) * 100:.1f}%",
+            'precision': round(m.get('precision', 0.0), 3),
+            'recall': round(m.get('recall', 0.0), 3),
+            'f1': round(m.get('f1', 0.0), 3),
+            'auc': round(m.get('auc', 0.0), 3),
+            'is_active': (name == detector.model_name)
+        })
+    
+    # Sort by F1-Score descending
+    leaderboard.sort(key=lambda x: x['f1'], reverse=True)
+    
+    return render_template(
+        'model_info.html',
+        model_name=detector.model_name,
+        threat_threshold=detector.threat_threshold,
+        leaderboard=leaderboard
+    )
 
 @app.route('/train-model', methods=['GET', 'POST'])
 def train_model():

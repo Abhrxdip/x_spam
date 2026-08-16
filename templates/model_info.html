@@ -8,7 +8,8 @@
         <h2 class="fw-bold mb-1 gradient-text">
             <i class="bi bi-cpu-fill me-2"></i>ML Model Evaluation Leaderboard
         </h2>
-        <p class="text-muted mb-0">Benchmarked performance across 13 machine learning classifiers on unified threat dataset</p>
+        <p class="text-muted mb-0">Benchmarked performance across 13 machine learning classifiers on unified threat
+            dataset</p>
     </div>
     <a href="{{ url_for('train_model') }}" class="btn btn-primary shadow">
         <i class="bi bi-arrow-repeat me-1"></i> Retrain Model Pipeline
@@ -25,13 +26,17 @@
                 </div>
                 <div>
                     <h4 class="fw-bold text-white mb-0">{{ model_name or 'Gradient Boosting' }}</h4>
-                    <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25 mt-1">Active Champion Model</span>
+                    <span
+                        class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25 mt-1">Active
+                        Champion Model</span>
                 </div>
             </div>
             <p class="text-slate-300 small mb-3">
-                The active model bundle loaded in memory for real-time inference. Automatically selected as champion based on highest F1-Score & ROC-AUC performance.
+                The active model bundle loaded in memory for real-time inference. Automatically selected as champion
+                based on highest F1-Score & ROC-AUC performance.
             </p>
-            <div class="d-flex justify-content-between border-top border-secondary border-opacity-25 pt-3 text-muted small">
+            <div
+                class="d-flex justify-content-between border-top border-secondary border-opacity-25 pt-3 text-muted small">
                 <span>Threat Threshold: <strong>0.50</strong></span>
                 <span>Dataset Size: <strong>5,000 samples</strong></span>
                 <span>Features: <strong>42 metrics</strong></span>
@@ -41,25 +46,30 @@
 
     <div class="col-md-6">
         <div class="glass-card p-4 h-100">
-            <h5 class="fw-bold text-white mb-3"><i class="bi bi-diagram-3-fill me-2 text-info"></i>Evaluated Classifier Families</h5>
+            <h5 class="fw-bold text-white mb-3"><i class="bi bi-diagram-3-fill me-2 text-info"></i>Evaluated Classifier
+                Families</h5>
             <div class="row g-2">
                 <div class="col-6">
-                    <div class="p-2 rounded bg-black bg-opacity-30 border border-secondary border-opacity-25 small text-slate-300">
+                    <div
+                        class="p-2 rounded bg-black bg-opacity-30 border border-secondary border-opacity-25 small text-slate-300">
                         <i class="bi bi-tree text-success me-1"></i> Ensemble (RF, XGB, ExtraTrees)
                     </div>
                 </div>
                 <div class="col-6">
-                    <div class="p-2 rounded bg-black bg-opacity-30 border border-secondary border-opacity-25 small text-slate-300">
+                    <div
+                        class="p-2 rounded bg-black bg-opacity-30 border border-secondary border-opacity-25 small text-slate-300">
                         <i class="bi bi-cpu text-info me-1"></i> Neural Network (MLP)
                     </div>
                 </div>
                 <div class="col-6">
-                    <div class="p-2 rounded bg-black bg-opacity-30 border border-secondary border-opacity-25 small text-slate-300">
+                    <div
+                        class="p-2 rounded bg-black bg-opacity-30 border border-secondary border-opacity-25 small text-slate-300">
                         <i class="bi bi-bounding-box text-purple me-1"></i> Support Vector Machines
                     </div>
                 </div>
                 <div class="col-6">
-                    <div class="p-2 rounded bg-black bg-opacity-30 border border-secondary border-opacity-25 small text-slate-300">
+                    <div
+                        class="p-2 rounded bg-black bg-opacity-30 border border-secondary border-opacity-25 small text-slate-300">
                         <i class="bi bi-graph-up text-warning me-1"></i> Linear & Discriminant
                     </div>
                 </div>
@@ -82,129 +92,42 @@
                     <th>Algorithm Name</th>
                     <th>Family</th>
                     <th class="text-center">Accuracy</th>
+                    <th class="text-center">Precision</th>
+                    <th class="text-center">Recall</th>
                     <th class="text-center">F1-Score</th>
                     <th class="text-center">ROC-AUC</th>
                     <th class="text-end">Status</th>
                 </tr>
             </thead>
             <tbody>
-                <tr class="table-active border-secondary">
-                    <td class="fw-bold text-warning">#1</td>
-                    <td class="fw-bold text-white"><i class="bi bi-shield-check text-success me-2"></i>Gradient Boosting</td>
-                    <td><span class="badge bg-primary bg-opacity-25 text-info">Boosting Ensemble</span></td>
-                    <td class="text-center fw-bold text-success">98.9%</td>
-                    <td class="text-center fw-bold text-success">0.992</td>
-                    <td class="text-center fw-bold text-info">0.997</td>
-                    <td class="text-end"><span class="badge bg-success">Active Model</span></td>
+                {% if leaderboard %}
+                {% for model in leaderboard %}
+                <tr class="{% if model.is_active %}table-active border-secondary{% else %}border-secondary{% endif %}">
+                    <td class="fw-bold {% if loop.index == 1 %}text-warning{% else %}text-slate-400{% endif %}">#{{ loop.index }}</td>
+                    <td class="fw-bold text-white">
+                        {% if model.is_active %}<i class="bi bi-shield-check text-success me-2"></i>{% endif %}
+                        {{ model.name }}
+                    </td>
+                    <td><span class="badge bg-primary bg-opacity-25 text-info">{{ model.family }}</span></td>
+                    <td class="text-center fw-bold {% if model.is_active %}text-success{% endif %}">{{ model.accuracy_pct }}</td>
+                    <td class="text-center text-slate-300">{{ model.precision }}</td>
+                    <td class="text-center text-slate-300">{{ model.recall }}</td>
+                    <td class="text-center fw-bold {% if model.is_active %}text-success{% endif %}">{{ model.f1 }}</td>
+                    <td class="text-center fw-bold text-info">{{ model.auc }}</td>
+                    <td class="text-end">
+                        {% if model.is_active %}
+                        <span class="badge bg-success">Active Model</span>
+                        {% else %}
+                        <span class="badge bg-secondary">Evaluated</span>
+                        {% endif %}
+                    </td>
                 </tr>
+                {% endfor %}
+                {% else %}
                 <tr class="border-secondary">
-                    <td class="fw-bold text-slate-400">#2</td>
-                    <td class="fw-bold text-white">AdaBoost Classifier</td>
-                    <td><span class="badge bg-primary bg-opacity-25 text-info">Boosting Ensemble</span></td>
-                    <td class="text-center">98.8%</td>
-                    <td class="text-center">0.991</td>
-                    <td class="text-center">0.999</td>
-                    <td class="text-end"><span class="badge bg-secondary">Evaluated</span></td>
+                    <td colspan="9" class="text-center text-muted py-4">No model benchmark metrics found. Train a model to see evaluation metrics.</td>
                 </tr>
-                <tr class="border-secondary">
-                    <td class="fw-bold text-slate-400">#3</td>
-                    <td class="fw-bold text-white">HistGradientBoosting</td>
-                    <td><span class="badge bg-primary bg-opacity-25 text-info">Histogram Boosting</span></td>
-                    <td class="text-center">98.5%</td>
-                    <td class="text-center">0.989</td>
-                    <td class="text-center">0.999</td>
-                    <td class="text-end"><span class="badge bg-secondary">Evaluated</span></td>
-                </tr>
-                <tr class="border-secondary">
-                    <td class="fw-bold text-slate-400">#4</td>
-                    <td class="fw-bold text-white">Random Forest</td>
-                    <td><span class="badge bg-primary bg-opacity-25 text-info">Bagging Ensemble</span></td>
-                    <td class="text-center">97.9%</td>
-                    <td class="text-center">0.985</td>
-                    <td class="text-center">0.999</td>
-                    <td class="text-end"><span class="badge bg-secondary">Evaluated</span></td>
-                </tr>
-                <tr class="border-secondary">
-                    <td class="fw-bold text-slate-400">#5</td>
-                    <td class="fw-bold text-white">Extra Trees Classifier</td>
-                    <td><span class="badge bg-primary bg-opacity-25 text-info">Extremely Randomized</span></td>
-                    <td class="text-center">97.4%</td>
-                    <td class="text-center">0.982</td>
-                    <td class="text-center">0.999</td>
-                    <td class="text-end"><span class="badge bg-secondary">Evaluated</span></td>
-                </tr>
-                <tr class="border-secondary">
-                    <td class="fw-bold text-slate-400">#6</td>
-                    <td class="fw-bold text-white">Decision Tree</td>
-                    <td><span class="badge bg-secondary bg-opacity-25 text-slate-300">Tree Classifier</span></td>
-                    <td class="text-center">97.1%</td>
-                    <td class="text-center">0.980</td>
-                    <td class="text-center">0.959</td>
-                    <td class="text-end"><span class="badge bg-secondary">Evaluated</span></td>
-                </tr>
-                <tr class="border-secondary">
-                    <td class="fw-bold text-slate-400">#7</td>
-                    <td class="fw-bold text-white">Neural Network (MLP)</td>
-                    <td><span class="badge bg-info bg-opacity-25 text-info">Multi-Layer Perceptron</span></td>
-                    <td class="text-center">84.8%</td>
-                    <td class="text-center">0.892</td>
-                    <td class="text-center">0.931</td>
-                    <td class="text-end"><span class="badge bg-secondary">Evaluated</span></td>
-                </tr>
-                <tr class="border-secondary">
-                    <td class="fw-bold text-slate-400">#8</td>
-                    <td class="fw-bold text-white">Support Vector Machine (SVC)</td>
-                    <td><span class="badge bg-purple bg-opacity-25 text-purple">Kernel SVM</span></td>
-                    <td class="text-center">84.4%</td>
-                    <td class="text-center">0.892</td>
-                    <td class="text-center">0.925</td>
-                    <td class="text-end"><span class="badge bg-secondary">Evaluated</span></td>
-                </tr>
-                <tr class="border-secondary">
-                    <td class="fw-bold text-slate-400">#9</td>
-                    <td class="fw-bold text-white">Linear Discriminant (LDA)</td>
-                    <td><span class="badge bg-secondary bg-opacity-25 text-slate-300">Discriminant</span></td>
-                    <td class="text-center">84.2%</td>
-                    <td class="text-center">0.889</td>
-                    <td class="text-center">0.913</td>
-                    <td class="text-end"><span class="badge bg-secondary">Evaluated</span></td>
-                </tr>
-                <tr class="border-secondary">
-                    <td class="fw-bold text-slate-400">#10</td>
-                    <td class="fw-bold text-white">Logistic Regression</td>
-                    <td><span class="badge bg-secondary bg-opacity-25 text-slate-300">Linear Model</span></td>
-                    <td class="text-center">84.0%</td>
-                    <td class="text-center">0.888</td>
-                    <td class="text-center">0.915</td>
-                    <td class="text-end"><span class="badge bg-secondary">Evaluated</span></td>
-                </tr>
-                <tr class="border-secondary">
-                    <td class="fw-bold text-slate-400">#11</td>
-                    <td class="fw-bold text-white">K-Nearest Neighbors (KNN)</td>
-                    <td><span class="badge bg-secondary bg-opacity-25 text-slate-300">Instance-Based</span></td>
-                    <td class="text-center">78.6%</td>
-                    <td class="text-center">0.856</td>
-                    <td class="text-center">0.801</td>
-                    <td class="text-end"><span class="badge bg-secondary">Evaluated</span></td>
-                </tr>
-                <tr class="border-secondary">
-                    <td class="fw-bold text-slate-400">#12</td>
-                    <td class="fw-bold text-white">Gaussian Naive Bayes</td>
-                    <td><span class="badge bg-secondary bg-opacity-25 text-slate-300">Probabilistic</span></td>
-                    <td class="text-center">53.2%</td>
-                    <td class="text-center">0.521</td>
-                    <td class="text-center">0.873</td>
-                    <td class="text-end"><span class="badge bg-secondary">Evaluated</span></td>
-                </tr>
-                <tr class="border-secondary">
-                    <td class="fw-bold text-slate-400">#13</td>
-                    <td class="fw-bold text-white">Quadratic Discriminant (QDA)</td>
-                    <td><span class="badge bg-secondary bg-opacity-25 text-slate-300">Discriminant</span></td>
-                    <td class="text-center">46.3%</td>
-                    <td class="text-center">0.420</td>
-                    <td class="text-center">0.741</td>
-                    <td class="text-end"><span class="badge bg-secondary">Evaluated</span></td>
-                </tr>
+                {% endif %}
             </tbody>
         </table>
     </div>
