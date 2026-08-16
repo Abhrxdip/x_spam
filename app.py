@@ -37,6 +37,15 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 # Initialize detector
 detector = UnifiedThreatDetector()
 
+# Warm up NLP classifier during server startup so first live query is instantaneous
+try:
+    from src.features.nlp_classifier import get_nlp_classifier
+    _nlp_clf = get_nlp_classifier()
+    _nlp_clf.classify_text("System warmup test")
+    logger.info("DistilBERT NLP engine prewarmed and ready in memory")
+except Exception as _warm_err:
+    logger.info(f"NLP warmup note: {_warm_err}")
+
 # Server-side stores to prevent cookie size overflow (>4KB)
 BATCH_RESULTS_STORE = {}
 SINGLE_RESULTS_STORE = {}
