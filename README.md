@@ -50,7 +50,7 @@ Modern social networks (such as X/Twitter, Instagram, and Facebook) are heavily 
 4. **API Paywalls**: Official platform APIs (such as X API v2) cost $100+/month or restrict rate limits, rendering real-time citizen-facing detection tools inaccessible.
 
 ### The ASEDF Solution:
-The **Adaptive Social Engineering Defense Framework (ASEDF)** is an open-source, multi-modal threat intelligence platform that takes any profile URL or username, scrapes live public data through an internal guest-token flow without API keys, extracts 44 multi-domain features, classifies textual intent using a custom **Fine-Tuned DistilBERT Transformer (97.5% Accuracy)**, and evaluates threat vectors using a **HistGradientBoosting Classifier (98.5% Accuracy, 0.9987 ROC-AUC)** — returning explainable security intelligence in under 3 seconds.
+The **Adaptive Social Engineering Defense Framework (ASEDF)** is an open-source, multi-modal threat intelligence platform that takes any profile URL or username, scrapes live public data through an internal guest-token flow without API keys, extracts 44 multi-domain features, classifies textual intent using a custom **Fine-Tuned DistilBERT Transformer (97.5% Accuracy)**, and evaluates threat vectors using a balanced **AdaBoost Ensemble Classifier (76.3% Accuracy, 0.8350 ROC-AUC)** — returning explainable security intelligence in under 3 seconds.
 
 ---
 
@@ -82,7 +82,7 @@ ASEDF implements an end-to-end, multi-layered threat evaluation pipeline that di
                                         ▼
  ┌─────────────────────────────────────────────────────────────────────────────┐
  │ PHASE 4: 13-Model Machine Learning Ensemble & Classification                │
- │ • Standardizes 44-D vector -> Evaluates through Champion HistGradientBoost  │
+ │ • Standardizes 44-D vector -> Evaluates through Champion AdaBoost Ensemble  │
  │ • Generates Calibrated Threat Probability Score (0.0% - 100.0%)             │
  │ • Assigns Threat Category: Legitimate, Spam, Bot, Phishing, Fake Profile    │
  └──────────────────────────────────────┬──────────────────────────────────────┘
@@ -153,23 +153,23 @@ Unlike primitive regex filters that fail when attackers rephrase sentences or us
 ### 4️⃣ Phase 4: Machine Learning Model Benchmark Leaderboard (13 Models Evaluated)
 *File: `src/models/train_model.py`*
 
-Evaluated on **5,000 labeled profile records** (4,015 Threats / 985 Legitimate, 80/20 train/test split of 1,000 test profiles). All metrics extracted directly from production training bundle `models/threat_detector_model.pkl`:
+Evaluated on a **50/50 balanced multi-modal dataset** (5,000 profiles with realistic real-world feature overlap and social variance). All metrics generated via stratified 80/20 train/test evaluation in `src/models/train_model.py` and saved in `models/threat_detector_model.pkl`:
 
 | Rank | Model Architecture | Test Accuracy | Precision | Recall | F1-Score | ROC-AUC | Architectural Evaluation & Analysis |
 |---|---|---|---|---|---|---|---|
-| 🥇 | **Histogram-Based Gradient Boosting (Champion)** | **98.5%** | **0.9888** | **0.9925** | **0.9907** | **0.9987** | **Optimal Production Champion**: Bins continuous features into integer bins for fast gradient computation; highest ROC-AUC and F1. |
-| 🥈 | **Gradient Boosting Classifier** | **97.9%** | 0.9851 | 0.9888 | 0.9869 | 0.9979 | High precision ensemble; sequential residual correction. |
-| 🥉 | **Decision Tree Classifier** | **96.5%** | 0.9752 | 0.9813 | 0.9783 | 0.9389 | Fast hierarchical rule segmentation. |
-| 4 | **AdaBoost Classifier** | **96.4%** | 0.9637 | 0.9925 | 0.9779 | 0.9970 | Adaptive boosting over weak decision stumps. |
-| 5 | **Random Forest Classifier** | **93.0%** | 0.9277 | 0.9900 | 0.9578 | 0.9854 | Robust bagging ensemble; resilient against noisy social features. |
-| 6 | **Extra Trees Classifier** | **90.6%** | 0.9006 | 0.9925 | 0.9443 | 0.9704 | Extremely randomized trees for variance reduction. |
-| 7 | **Logistic Regression** | **89.8%** | 0.9178 | 0.9589 | 0.9379 | 0.9395 | Linear decision boundary baseline with L2 regularization. |
-| 8 | **Neural Network (MLP)** | **89.8%** | 0.9259 | 0.9489 | 0.9373 | 0.9436 | Multi-Layer Perceptron with (64, 32) hidden layers. |
-| 9 | **Support Vector Machine (RBF Kernel)** | **89.3%** | 0.9075 | 0.9651 | 0.9354 | 0.9485 | Non-linear radial basis function kernel mapping. |
-| 10 | **Linear Discriminant Analysis (LDA)** | **89.0%** | 0.9072 | 0.9614 | 0.9335 | 0.9327 | Maximizes between-class variance to within-class variance. |
-| 11 | **K-Nearest Neighbors (KNN)** | **84.8%** | 0.8589 | 0.9701 | 0.9111 | 0.8179 | Distance metric clustering (k=5). |
-| 12 | **Quadratic Discriminant (QDA)** | **71.1%** | 0.9831 | 0.6513 | 0.7835 | 0.9159 | Quadratic boundary estimation; high precision but lower recall. |
-| 13 | **Gaussian Naive Bayes** | **67.2%** | 0.9741 | 0.6077 | 0.7485 | 0.8922 | Probabilistic model under independence assumption. |
+| 🥇 | **AdaBoost Ensemble (Champion)** | **76.30%** | **0.7604** | **0.7856** | **0.7728** | **0.8350** | **Balanced Champion**: Sequential adaptive re-weighting on boundary profiles; robust against real-world social ambiguity. |
+| 🥈 | **Random Forest Classifier** | **76.20%** | 0.7589 | 0.7856 | 0.7720 | 0.8455 | Bagging ensemble averaging with depth pruning to prevent feature memorization. |
+| 🥉 | **Logistic Regression** | **76.20%** | 0.7701 | 0.7641 | 0.7671 | 0.8490 | Linear decision boundary with L2 regularization penalty ($C=0.5$). |
+| 4 | **Neural Network (MLP)** | **76.20%** | 0.7691 | 0.7661 | 0.7676 | 0.8366 | Multi-Layer Perceptron (64, 32) with early stopping. |
+| 5 | **Support Vector Machine (RBF)** | **76.10%** | 0.7676 | 0.7661 | 0.7668 | 0.8200 | Radial basis function margin separation with soft slack penalty ($C=0.8$). |
+| 6 | **Linear Discriminant (LDA)** | **76.00%** | 0.7671 | 0.7641 | 0.7656 | 0.8479 | Optimal linear combination of continuous predictor variables. |
+| 7 | **Extra Trees Classifier** | **75.70%** | 0.7567 | 0.7758 | 0.7661 | 0.8466 | Randomized decision boundaries for variance reduction. |
+| 8 | **Naive Bayes (Gaussian)** | **75.40%** | 0.7799 | 0.7251 | 0.7515 | 0.8409 | Probabilistic baseline with high precision on clear-cut profiles. |
+| 9 | **Gradient Boosting Classifier** | **74.80%** | 0.7467 | 0.7700 | 0.7582 | 0.8269 | Gradient boosting trees with depth=4 to prevent over-specialization. |
+| 10 | **Quadratic Discriminant (QDA)** | **74.70%** | 0.7600 | 0.7407 | 0.7502 | 0.8173 | Quadratic decision surface for non-linear class covariance. |
+| 11 | **HistGradientBoosting** | **73.80%** | 0.7381 | 0.7583 | 0.7481 | 0.8239 | Histogram binning with L2 regularization ($L2=2.0$). |
+| 12 | **K-Nearest Neighbors (KNN)** | **72.80%** | 0.7444 | 0.7154 | 0.7296 | 0.8087 | Distance-weighted k-nearest neighbors ($k=9$). |
+| 13 | **Decision Tree Classifier** | **72.70%** | 0.7247 | 0.7544 | 0.7393 | 0.8033 | Regularized decision tree ($depth=6, min\_samples=15$). |
 
 ---
 
