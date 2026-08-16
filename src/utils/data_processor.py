@@ -670,67 +670,69 @@ def _parse_twibot_or_json_item(item: Any, default_platform: str = 'twitter') -> 
             'thread_entry_type': 'original'
         }
 
-    # Standard dict format with username/profile_url
-    username = item.get('username') or item.get('screen_name') or item.get('handle') or item.get('profile_url') or item.get('url') or item.get('ID')
-    if username:
-        profile_platform = item.get('platform', default_platform)
-        # If item already has followers_count or posts, construct directly
-        if 'followers_count' in item or 'following_count' in item or 'followers' in item or 'posts' in item:
-            def safe_int(val, default=0):
-                try:
-                    if val is None or str(val).strip() in ['None', 'none', '']:
-                        return default
-                    return int(float(str(val).strip()))
-                except Exception:
-                    return default
-                    
-            followers = safe_int(item.get('followers_count', item.get('followers', 0)))
-            following = safe_int(item.get('following_count', item.get('following', item.get('friends_count', 0))))
-            posts_count = safe_int(item.get('posts_count', item.get('statuses_count', 0)))
-            verified_val = str(item.get('verified', 'false')).strip().lower()
-            verified = verified_val in ['true', '1', 'yes']
-            
-            raw_tweets = item.get('posts') or item.get('tweet') or item.get('tweets') or []
-            posts_data = []
-            if isinstance(raw_tweets, list):
-                for t in raw_tweets[:20]:
-                    if isinstance(t, str):
-                        posts_data.append({
-                            'text': t.strip(),
-                            'created_at': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                            'likes': 0,
-                            'retweets': 0
-                        })
-                    elif isinstance(t, dict):
-                        posts_data.append({
-                            'text': t.get('text', str(t)),
-                            'created_at': t.get('created_at', datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
-                            'likes': safe_int(t.get('likes', 0)),
-                            'retweets': safe_int(t.get('retweets', 0))
-                        })
+    # Check for TwiBot-22 / Twitter API v2 nested user structure
+    user_obj = item.get('user') if isinstance(item.get('user'), dict) else item
+    
+    # Check for TwiBot-22 public_metrics
+    pub_metrics = user_obj.get('public_metrics') if isinstance(user_obj.get('public_metrics'), dict) else {}
 
-            return {
-                'username': str(username).strip().lstrip('@'),
-                'display_name': str(item.get('display_name') or item.get('name') or username).strip(),
-                'bio': str(item.get('bio') or item.get('description') or ''),
-                'external_url': item.get('external_url') or item.get('url'),
-                'profile_pic_url': item.get('profile_pic_url') or item.get('profile_image_url') or '',
-                'creation_date': str(item.get('creation_date') or item.get('created_at') or '2020-01-01'),
-                'followers_count': followers,
-                'following_count': following,
-                'posts_count': posts_count,
-                'verified': verified,
-                'location': str(item.get('location') or ''),
-                'posts': posts_data,
-                'platform': profile_platform,
-                'sentiment_label': item.get('sentiment_label', 'neutral'),
-                'country': item.get('country', 'US'),
-                'account_type': item.get('account_type', 'individual'),
-                'gender': item.get('gender', 'unknown'),
-                'thread_entry_type': item.get('thread_entry_type', 'original')
-            }
-        else:
-            return process_profile_url(str(username), profile_platform)
+    username = user_obj.get('username') or user_obj.get('screen_name') or user_obj.get('handle') or user_obj.get('profile_url') or user_obj.get('url') or user_obj.get('ID') or item.get('id') or item.get('ID')
+    if username:
+        profile_platform = user_obj.get('platform', default_platform)
+        
+        def safe_int(val, default=0):
+            try:
+                if val is None or str(val).strip() in ['None', 'none', '']:
+                    return default
+                return int(float(str(val).strip()))
+            except Exception:
+                return default
+                
+        followers = safe_int(pub_metrics.get('followers_count', user_obj.get('followers_count', user_obj.get('followers', 0))))
+        following = safe_int(pub_metrics.get('following_count', user_obj.get('following_count', user_obj.get('following', user_obj.get('friends_count', 0)))))
+        posts_count = safe_int(pub_metrics.get('tweet_count', user_obj.get('posts_count', user_obj.get('statuses_count', 0))))
+        verified_val = str(user_obj.get('verified', 'false')).strip().lower()
+        verified = verified_val in ['true', '1', 'yes']
+        
+        raw_tweets = user_obj.get('recent_tweets') or user_obj.get('timeline') or user_obj.get('posts') or user_obj.get('tweet') or user_obj.get('tweets') or item.get('recent_tweets') or item.get('tweet') or []
+        posts_data = []
+        if isinstance(raw_tweets, list):
+            for t in raw_tweets[:20]:
+                if isinstance(t, str):
+                    posts_data.append({
+                        'text': t.strip(),
+                        'created_at': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                        'likes': 0,
+                        'retweets': 0
+                    })
+                elif isinstance(t, dict):
+                    posts_data.append({
+                        'text': t.get('text', str(t)),
+                        'created_at': t.get('created_at', datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+                        'likes': safe_int(t.get('likes', t.get('like_count', 0))),
+                        'retweets': safe_int(t.get('retweets', t.get('retweet_count', 0)))
+                    })
+
+        return {
+            'username': str(username).strip().lstrip('@'),
+            'display_name': str(user_obj.get('display_name') or user_obj.get('name') or username).strip(),
+            'bio': str(user_obj.get('bio') or user_obj.get('description') or ''),
+            'external_url': user_obj.get('external_url') or user_obj.get('url'),
+            'profile_pic_url': user_obj.get('profile_pic_url') or user_obj.get('profile_image_url') or user_obj.get('profile_image_url_https') or '',
+            'creation_date': str(user_obj.get('creation_date') or user_obj.get('created_at') or '2022-01-01'),
+            'followers_count': followers,
+            'following_count': following,
+            'posts_count': posts_count,
+            'verified': verified,
+            'location': str(user_obj.get('location') or ''),
+            'posts': posts_data,
+            'platform': profile_platform,
+            'sentiment_label': user_obj.get('sentiment_label', 'neutral'),
+            'country': user_obj.get('country', 'US'),
+            'account_type': user_obj.get('account_type', 'individual'),
+            'gender': user_obj.get('gender', 'unknown'),
+            'thread_entry_type': user_obj.get('thread_entry_type', 'original')
+        }
 
     return None
 
