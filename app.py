@@ -260,10 +260,18 @@ def model_info():
     # Sort by F1-Score descending
     leaderboard.sort(key=lambda x: x['f1'], reverse=True)
     
+    # Extract metadata from trainer if available
+    dataset_size = getattr(detector.model_trainer, 'dataset_size', 50000) or 50000
+    epochs_count = getattr(detector.model_trainer, 'epochs', 10) or 10
+    feature_count = len(getattr(detector.model_trainer, 'feature_names', [])) or 54
+    
     return render_template(
         'model_info.html',
         model_name=detector.model_name,
         threat_threshold=detector.threat_threshold,
+        dataset_size=dataset_size,
+        epochs_count=epochs_count,
+        feature_count=feature_count,
         leaderboard=leaderboard
     )
 

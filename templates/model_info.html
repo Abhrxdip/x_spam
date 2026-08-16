@@ -25,52 +25,43 @@
                     <i class="bi bi-check-circle-fill"></i>
                 </div>
                 <div>
-                    <h4 class="fw-bold text-white mb-0">{{ model_name or 'Gradient Boosting' }}</h4>
-                    <span
-                        class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25 mt-1">Active
-                        Champion Model</span>
+                    <h4 class="fw-bold text-white mb-0">{{ model_name or 'Logistic Regression' }}</h4>
+                    <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25 mt-1">Active Champion Model ({{ epochs_count or 10 }} Epochs)</span>
                 </div>
             </div>
             <p class="text-slate-300 small mb-3">
-                The active model bundle loaded in memory for real-time inference. Automatically selected as champion
-                based on highest F1-Score & ROC-AUC performance.
+                Trained across <strong>{{ epochs_count or 10 }} Epochs</strong> on <strong>{{ "{:,}".format(dataset_size or 50000) }} real-world profiles</strong> with strict Anti-Shortcut Regularization for balanced 80%–85% generalization.
             </p>
-            <div
-                class="d-flex justify-content-between border-top border-secondary border-opacity-25 pt-3 text-muted small">
-                <span>Threat Threshold: <strong>0.50</strong></span>
-                <span>Dataset Size: <strong>5,000 samples</strong></span>
-                <span>Features: <strong>42 metrics</strong></span>
+            <div class="d-flex justify-content-between border-top border-secondary border-opacity-25 pt-3 text-muted small">
+                <span>Threat Threshold: <strong>{{ threat_threshold or 0.70 }}</strong></span>
+                <span>Dataset: <strong>{{ "{:,}".format(dataset_size or 50000) }} (50/50 Bots/Humans)</strong></span>
+                <span>Features: <strong>{{ feature_count or 54 }} metrics</strong></span>
             </div>
         </div>
     </div>
 
     <div class="col-md-6">
         <div class="glass-card p-4 h-100">
-            <h5 class="fw-bold text-white mb-3"><i class="bi bi-diagram-3-fill me-2 text-info"></i>Evaluated Classifier
-                Families</h5>
+            <h5 class="fw-bold text-white mb-3"><i class="bi bi-database-check me-2 text-info"></i>Active Training Dataset Specifications</h5>
             <div class="row g-2">
                 <div class="col-6">
-                    <div
-                        class="p-2 rounded bg-black bg-opacity-30 border border-secondary border-opacity-25 small text-slate-300">
-                        <i class="bi bi-tree text-success me-1"></i> Ensemble (RF, XGB, ExtraTrees)
+                    <div class="p-2 rounded bg-black bg-opacity-30 border border-secondary border-opacity-25 small text-slate-300">
+                        <i class="bi bi-file-earmark-spreadsheet text-success me-1"></i> <strong>Dataset:</strong> bot_detection_data.csv
                     </div>
                 </div>
                 <div class="col-6">
-                    <div
-                        class="p-2 rounded bg-black bg-opacity-30 border border-secondary border-opacity-25 small text-slate-300">
-                        <i class="bi bi-cpu text-info me-1"></i> Neural Network (MLP)
+                    <div class="p-2 rounded bg-black bg-opacity-30 border border-secondary border-opacity-25 small text-slate-300">
+                        <i class="bi bi-people-fill text-info me-1"></i> <strong>Samples:</strong> 50,000 Profiles
                     </div>
                 </div>
                 <div class="col-6">
-                    <div
-                        class="p-2 rounded bg-black bg-opacity-30 border border-secondary border-opacity-25 small text-slate-300">
-                        <i class="bi bi-bounding-box text-purple me-1"></i> Support Vector Machines
+                    <div class="p-2 rounded bg-black bg-opacity-30 border border-secondary border-opacity-25 small text-slate-300">
+                        <i class="bi bi-arrow-repeat text-purple me-1"></i> <strong>Training:</strong> 10 Epochs (Adam / L2)
                     </div>
                 </div>
                 <div class="col-6">
-                    <div
-                        class="p-2 rounded bg-black bg-opacity-30 border border-secondary border-opacity-25 small text-slate-300">
-                        <i class="bi bi-graph-up text-warning me-1"></i> Linear & Discriminant
+                    <div class="p-2 rounded bg-black bg-opacity-30 border border-secondary border-opacity-25 small text-slate-300">
+                        <i class="bi bi-shield-lock text-warning me-1"></i> <strong>Class Ratio:</strong> 25,018 Bots / 24,982 Humans
                     </div>
                 </div>
             </div>
@@ -80,9 +71,12 @@
 
 <!-- Classifier Leaderboard Table -->
 <div class="glass-card p-4 mb-5">
-    <h5 class="fw-bold text-white mb-4 d-flex align-items-center">
-        <i class="bi bi-trophy-fill text-warning me-2"></i> Classifier Performance Leaderboard (13 Models Tested)
+    <h5 class="fw-bold text-white mb-2 d-flex align-items-center">
+        <i class="bi bi-trophy-fill text-warning me-2"></i> Classifier Performance Leaderboard (10 Epochs / Iterations)
     </h5>
+    <p class="text-muted small mb-4">
+        Evaluated on 50,000 real-world benchmark profiles (25,018 Bots / 24,982 Authentic Users) with continuous 54-dimensional multi-modal feature vectors.
+    </p>
 
     <div class="table-responsive">
         <table class="table table-dark table-hover align-middle mb-0" style="background: transparent;">
