@@ -495,22 +495,18 @@ def generate_synthetic_training_data(n_samples: int = 5000) -> pd.DataFrame:
         'links_youtube': links_youtube,
         'links_facebook': links_facebook,
         'links_instagram': links_instagram,
-        'links_other': links_other
+        'links_other': links_other,
+        
+        # DeBERTa Transformer NLP Features
+        'deberta_phishing_score': np.clip(suspicious_content_score + np.random.normal(0, 0.05, n_samples), 0, 1),
+        'deberta_spam_confidence': np.clip(suspicious_content_score * 0.8 + np.random.normal(0, 0.05, n_samples), 0, 1)
     })
-    
-    # Generate target based on realistic threat patterns
-    # Higher threat probability for:
-    # - New accounts (low account_age_days)
-    # - High following/follower ratio (bot-like)
-    # - High suspicious content
-    # - Default/AI images
-    # - Bot account type
-    # - High spam pattern matches
     
     threat_prob = (
         0.35 * (account_age_days < 30).astype(float) +
         0.30 * (followers_to_following_ratio < 0.05).astype(float) +
-        0.35 * suspicious_content_score +
+        0.30 * suspicious_content_score +
+        0.30 * df['deberta_phishing_score'].values +
         0.25 * is_default_image +
         0.25 * is_ai_generated +
         0.40 * (Account_Type == 'bot').astype(float) +

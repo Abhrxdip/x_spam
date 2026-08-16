@@ -176,6 +176,18 @@ class UnifiedFeatureExtractor:
             # Duplicate / Repetitive Post Ratio
             unique_posts = len(set(post_texts))
             features['duplicate_post_ratio'] = 1.0 - (unique_posts / len(post_texts)) if post_texts else 0
+
+            # Microsoft DeBERTa v3 Transformer NLP Analysis
+            try:
+                from src.features.deberta_analyzer import get_deberta_analyzer
+                deberta_analyzer = get_deberta_analyzer()
+                deberta_metrics = deberta_analyzer.analyze_post_texts(post_texts)
+                features['deberta_phishing_score'] = deberta_metrics['deberta_phishing_score']
+                features['deberta_spam_confidence'] = deberta_metrics['deberta_spam_confidence']
+            except Exception as e:
+                logger.debug(f"DeBERTa feature extraction fallback: {str(e)}")
+                features['deberta_phishing_score'] = 0.0
+                features['deberta_spam_confidence'] = 0.0
         else:
             features['sentiment_score'] = 0.5
             features['content_diversity'] = 1.0
@@ -187,6 +199,8 @@ class UnifiedFeatureExtractor:
             features['hashtag_stuffing_ratio'] = 0.0
             features['link_post_ratio'] = 0.0
             features['duplicate_post_ratio'] = 0.0
+            features['deberta_phishing_score'] = 0.0
+            features['deberta_spam_confidence'] = 0.0
         
         return features
     

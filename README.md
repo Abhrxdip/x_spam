@@ -12,21 +12,24 @@ An AI-powered multi-modal threat detection platform designed for **Smart India H
 ## 🌟 Key Features
 
 1. **Multi-Modal Feature Fusion Engine**:
-   - Analyzes 42 distinct features combining **Account Metrics**, **NLP Content Sentiment**, **Timeline Postings**, **Network Isolation Ratios**, and **Profile Picture Visual Cues**.
+   - Analyzes 44 distinct features combining **Account Metrics**, **NLP Content Sentiment**, **DeBERTa Transformer Embeddings**, **Timeline Postings**, **Network Isolation Ratios**, and **Profile Picture Visual Cues**.
 
-2. **Mention & Posting Spam Analysis**:
+2. **Microsoft DeBERTa v3 Transformer NLP Engine**:
+   - Integrated `microsoft/deberta-v3-base` via Hugging Face `transformers` + `torch` for deep zero-shot social engineering, crypto giveaway, and phishing threat detection.
+
+3. **Mention & Posting Spam Analysis**:
    - Flags `@username` tagging spam attacks (unsolicited mass tagging).
    - Detects external phishing link campaigns (`bit.ly`, `t.me`, `wa.me`).
    - Identifies copy-paste repetitive timeline postings and hashtag stuffing.
 
-3. **13 ML Classifier Evaluation Leaderboard**:
+4. **13 ML Classifier Evaluation Leaderboard**:
    - Trains and compares 13 machine learning classifiers: *Gradient Boosting*, *Random Forest*, *HistGradientBoosting*, *AdaBoost*, *Extra Trees*, *Neural Network (MLP)*, *Support Vector Machine (SVC)*, *Decision Tree*, *Logistic Regression*, *Linear Discriminant*, *KNN*, *Gaussian Naive Bayes*, and *Quadratic Discriminant*.
    - **Active Champion**: Gradient Boosting with **98.9% Accuracy** and **0.997 ROC-AUC**.
 
-4. **Live X/Twitter Profile Ingestion**:
+5. **Live X/Twitter Profile Ingestion**:
    - Connects to public X/Twitter syndication feeds to pull live display names, follower counts, tweet timelines, and verification status for any profile link (e.g. `https://x.com/username`).
 
-5. **Interactive Data Explorer Dashboard**:
+6. **Interactive Data Explorer Dashboard**:
    - Searchable, paginated 5,000+ benchmark dataset viewer with dynamic Chart.js visualizations, row feature inspection modal, and CSV export.
 
 ---
