@@ -50,7 +50,7 @@ Modern social networks (such as X/Twitter, Instagram, and Facebook) are heavily 
 4. **API Paywalls**: Official platform APIs (such as X API v2) cost $100+/month or restrict rate limits, rendering real-time citizen-facing detection tools inaccessible.
 
 ### The ASEDF Solution:
-The **Adaptive Social Engineering Defense Framework (ASEDF)** is an open-source, multi-modal threat intelligence platform that takes any profile URL or username, scrapes live public data through an internal guest-token flow without API keys, extracts 44 multi-domain features, classifies textual intent using a custom **Fine-Tuned DistilBERT Transformer (97.5% Accuracy)**, and evaluates threat vectors using a **HistGradientBoosting Classifier (98.9% Accuracy, 0.997 ROC-AUC)** — returning explainable security intelligence in under 3 seconds.
+The **Adaptive Social Engineering Defense Framework (ASEDF)** is an open-source, multi-modal threat intelligence platform that takes any profile URL or username, scrapes live public data through an internal guest-token flow without API keys, extracts 44 multi-domain features, classifies textual intent using a custom **Fine-Tuned DistilBERT Transformer (97.5% Accuracy)**, and evaluates threat vectors using a **HistGradientBoosting Classifier (98.5% Accuracy, 0.9987 ROC-AUC)** — returning explainable security intelligence in under 3 seconds.
 
 ---
 
@@ -153,23 +153,23 @@ Unlike primitive regex filters that fail when attackers rephrase sentences or us
 ### 4️⃣ Phase 4: Machine Learning Model Benchmark Leaderboard (13 Models Evaluated)
 *File: `src/models/train_model.py`*
 
-To determine the most accurate and resilient production classifier, ASEDF conducted a rigorous cross-validation benchmark across **13 distinct Machine Learning architectures** on a 5,000-profile multi-modal dataset:
+Evaluated on **5,000 labeled profile records** (4,015 Threats / 985 Legitimate, 80/20 train/test split of 1,000 test profiles). All metrics extracted directly from production training bundle `models/threat_detector_model.pkl`:
 
-| Rank | Model Architecture | Test Accuracy | Precision | Recall | F1-Score | ROC-AUC | Inference Speed | Architectural Strengths & Key Evaluation Takeaways |
-|---|---|---|---|---|---|---|---|---|
-| 🥇 | **Histogram-Based Gradient Boosting (Champion)** | **98.9%** | **0.991** | **0.987** | **0.989** | **0.997** | **0.8 ms** | **Optimal Champion**: Native handling of missing values, non-linear feature interactions, zero overfitting on edge cases, fastest inference. |
-| 🥈 | **Gradient Boosting Classifier** | **98.7%** | 0.989 | 0.985 | 0.987 | 0.996 | 4.2 ms | Excellent precision; slightly slower tree construction than histogram binning. |
-| 🥉 | **Random Forest Classifier** | **98.2%** | 0.984 | 0.980 | 0.982 | 0.995 | 3.8 ms | Highly robust ensemble averaging; resilient against individual noisy features. |
-| 4 | **Extra Trees Classifier** | **97.9%** | 0.981 | 0.977 | 0.979 | 0.994 | 2.5 ms | Randomized split thresholds offer strong variance reduction. |
-| 5 | **AdaBoost Classifier** | **96.1%** | 0.965 | 0.957 | 0.961 | 0.989 | 5.1 ms | Adaptive sequential weighting; strong performance on boundary profiles. |
-| 6 | **Multi-Layer Perceptron (Neural Net)** | **95.4%** | 0.958 | 0.950 | 0.954 | 0.987 | 1.2 ms | Deep representation learning; captures complex multi-modal non-linearities. |
-| 7 | **Support Vector Classifier (RBF Kernel)** | **94.2%** | 0.947 | 0.937 | 0.942 | 0.981 | 6.8 ms | Maximum-margin hyperplane separation in high-dimensional Hilbert space. |
-| 8 | **Decision Tree Classifier** | **93.8%** | 0.938 | 0.938 | 0.938 | 0.938 | 0.4 ms | Interpretable baseline; prone to minor variance on unseen social botnets. |
-| 9 | **Logistic Regression** | **88.3%** | 0.891 | 0.874 | 0.882 | 0.942 | 0.3 ms | Linear decision boundary baseline; cannot capture non-linear temporal correlations. |
-| 10 | **Linear Discriminant Analysis (LDA)** | **87.6%** | 0.884 | 0.866 | 0.875 | 0.937 | 0.4 ms | Gaussian distribution assumption struggles with multimodal feature distributions. |
-| 11 | **K-Nearest Neighbors (KNN)** | **86.9%** | 0.878 | 0.858 | 0.868 | 0.928 | 8.4 ms | Distance-based clustering suffers from high-dimensional feature sparsity. |
-| 12 | **Gaussian Naive Bayes** | **83.1%** | 0.849 | 0.806 | 0.827 | 0.912 | 0.2 ms | Conditional feature independence assumption fails on correlated Twitter metrics. |
-| 13 | **Quadratic Discriminant Analysis (QDA)** | **79.4%** | 0.812 | 0.765 | 0.788 | 0.891 | 0.5 ms | Quadratic boundary over-parameterization on sparse keyword features. |
+| Rank | Model Architecture | Test Accuracy | Precision | Recall | F1-Score | ROC-AUC | Architectural Evaluation & Analysis |
+|---|---|---|---|---|---|---|---|
+| 🥇 | **Histogram-Based Gradient Boosting (Champion)** | **98.5%** | **0.9888** | **0.9925** | **0.9907** | **0.9987** | **Optimal Production Champion**: Bins continuous features into integer bins for fast gradient computation; highest ROC-AUC and F1. |
+| 🥈 | **Gradient Boosting Classifier** | **97.9%** | 0.9851 | 0.9888 | 0.9869 | 0.9979 | High precision ensemble; sequential residual correction. |
+| 🥉 | **Decision Tree Classifier** | **96.5%** | 0.9752 | 0.9813 | 0.9783 | 0.9389 | Fast hierarchical rule segmentation. |
+| 4 | **AdaBoost Classifier** | **96.4%** | 0.9637 | 0.9925 | 0.9779 | 0.9970 | Adaptive boosting over weak decision stumps. |
+| 5 | **Random Forest Classifier** | **93.0%** | 0.9277 | 0.9900 | 0.9578 | 0.9854 | Robust bagging ensemble; resilient against noisy social features. |
+| 6 | **Extra Trees Classifier** | **90.6%** | 0.9006 | 0.9925 | 0.9443 | 0.9704 | Extremely randomized trees for variance reduction. |
+| 7 | **Logistic Regression** | **89.8%** | 0.9178 | 0.9589 | 0.9379 | 0.9395 | Linear decision boundary baseline with L2 regularization. |
+| 8 | **Neural Network (MLP)** | **89.8%** | 0.9259 | 0.9489 | 0.9373 | 0.9436 | Multi-Layer Perceptron with (64, 32) hidden layers. |
+| 9 | **Support Vector Machine (RBF Kernel)** | **89.3%** | 0.9075 | 0.9651 | 0.9354 | 0.9485 | Non-linear radial basis function kernel mapping. |
+| 10 | **Linear Discriminant Analysis (LDA)** | **89.0%** | 0.9072 | 0.9614 | 0.9335 | 0.9327 | Maximizes between-class variance to within-class variance. |
+| 11 | **K-Nearest Neighbors (KNN)** | **84.8%** | 0.8589 | 0.9701 | 0.9111 | 0.8179 | Distance metric clustering (k=5). |
+| 12 | **Quadratic Discriminant (QDA)** | **71.1%** | 0.9831 | 0.6513 | 0.7835 | 0.9159 | Quadratic boundary estimation; high precision but lower recall. |
+| 13 | **Gaussian Naive Bayes** | **67.2%** | 0.9741 | 0.6077 | 0.7485 | 0.8922 | Probabilistic model under independence assumption. |
 
 ---
 
