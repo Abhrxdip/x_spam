@@ -323,39 +323,6 @@ def train_model():
     
     return render_template('train_model.html')
 
-from src.stream.stream_engine import get_stream_engine
-
-@app.route('/stream')
-def stream():
-    """Real-Time Enterprise Social Stream & Ingestion Monitor."""
-    return render_template('stream.html')
-
-@app.route('/api/stream/events', methods=['GET'])
-def get_stream_events():
-    """Fetch next batch of streaming events for real-time high-throughput dashboard."""
-    count = min(50, max(1, int(request.args.get('count', 5))))
-    engine = get_stream_engine(detector)
-    events = [engine.generate_event() for _ in range(count)]
-    return jsonify({
-        'status': 'success',
-        'events': events,
-        'metrics': {
-            'total_processed': engine.total_processed,
-            'total_threats': engine.total_threats,
-            'threat_rate_pct': round((engine.total_threats / max(1, engine.total_processed)) * 100, 1),
-            'p95_latency_ms': engine.latencies[-1] if engine.latencies else 5.2
-        }
-    })
-
-@app.route('/api/stream/reset', methods=['POST'])
-def reset_stream_metrics():
-    """Reset stream metrics counter."""
-    engine = get_stream_engine(detector)
-    engine.total_processed = 0
-    engine.total_threats = 0
-    engine.latencies = []
-    return jsonify({'status': 'reset_complete'})
-
 @app.errorhandler(404)
 def page_not_found(e):
     """Handle 404 errors."""

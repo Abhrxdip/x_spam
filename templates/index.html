@@ -7,32 +7,32 @@
 <div class="row mb-5">
     <div class="col-12">
         <div class="glass-card p-5 text-center position-relative overflow-hidden">
-            <div class="position-absolute top-0 start-50 translate-middle-x w-100 h-100" 
-                 style="background: radial-gradient(circle, rgba(56, 189, 248, 0.15) 0%, transparent 70%); pointer-events: none;"></div>
-            
-            <span class="badge bg-primary bg-opacity-25 text-info px-3 py-2 rounded-pill mb-3 border border-info border-opacity-25">
+            <div class="position-absolute top-0 start-50 translate-middle-x w-100 h-100"
+                style="background: radial-gradient(circle, rgba(56, 189, 248, 0.15) 0%, transparent 70%); pointer-events: none;">
+            </div>
+
+            <span
+                class="badge bg-primary bg-opacity-25 text-info px-3 py-2 rounded-pill mb-3 border border-info border-opacity-25">
                 <i class="bi bi-cpu me-1"></i> ASEDF - Adaptive Social Engineering Defense Framework
             </span>
-            
+
             <h1 class="display-4 fw-extrabold mb-3 gradient-text">
                 AI-Powered Social Media Threat Detection
             </h1>
             <p class="lead text-slate-300 mx-auto mb-4" style="max-width: 750px;">
-                Detect fake profiles, spam campaigns, crypto scams, and automated bots across X/Twitter, Instagram, and Facebook using explainable multi-modal ML analytics.
+                Detect fake profiles, spam campaigns, crypto scams, and automated bots across X/Twitter, Instagram, and
+                Facebook using explainable multi-modal ML analytics.
             </p>
-            
+
             <div class="d-flex flex-wrap justify-content-center gap-3">
                 <a href="#analyze" class="btn btn-primary btn-lg px-4 shadow">
                     <i class="bi bi-search me-2"></i>Analyze Profile
                 </a>
-                <a href="{{ url_for('stream') }}" class="btn btn-danger btn-lg px-4 shadow">
-                    <i class="bi bi-broadcast me-2"></i>Live Stream Firehose
-                </a>
                 <a href="{{ url_for('data_explorer') }}" class="btn btn-outline-info btn-lg px-4">
-                    <i class="bi bi-database-check me-2"></i>Explore Dataset (50k)
+                    <i class="bi bi-database-check me-2"></i>Explore Dataset (50,000+ Records)
                 </a>
                 <a href="{{ url_for('batch_analysis') }}" class="btn btn-outline-light btn-lg px-4">
-                    <i class="bi bi-layers me-2"></i>Batch Upload
+                    <i class="bi bi-layers me-2"></i>Batch File Upload
                 </a>
             </div>
         </div>
@@ -43,7 +43,8 @@
 <div class="row g-4 mb-5">
     <div class="col-12 text-center mb-2">
         <h3 class="fw-bold gradient-text">Multi-Modal Threat Detection Architecture</h3>
-        <p class="text-muted">Combining content, activity, network structure, and profile image signals into a unified ML score</p>
+        <p class="text-muted">Combining content, activity, network structure, and profile image signals into a unified
+            ML score</p>
     </div>
     <div class="col-md-4">
         <div class="glass-card p-4 h-100">
@@ -51,7 +52,8 @@
                 <i class="bi bi-chat-text-fill"></i>
             </div>
             <h5 class="fw-bold text-white mb-2">Content Analyzer</h5>
-            <p class="text-slate-400 small mb-0">Scans posts and bio text for spam pattern matches, phishing cues, word frequencies (`word_sex`, `word_good`), and link counts.</p>
+            <p class="text-slate-400 small mb-0">Scans posts and bio text for spam pattern matches, phishing cues, word
+                frequencies (`word_sex`, `word_good`), and link counts.</p>
         </div>
     </div>
     <div class="col-md-4">
@@ -60,7 +62,8 @@
                 <i class="bi bi-activity"></i>
             </div>
             <h5 class="fw-bold text-white mb-2">Activity & Behavior</h5>
-            <p class="text-slate-400 small mb-0">Evaluates posting frequency, engagement ratios, timestamp regularity, and timezone variances to catch bot behavior.</p>
+            <p class="text-slate-400 small mb-0">Evaluates posting frequency, engagement ratios, timestamp regularity,
+                and timezone variances to catch bot behavior.</p>
         </div>
     </div>
     <div class="col-md-4">
@@ -69,7 +72,8 @@
                 <i class="bi bi-diagram-3-fill"></i>
             </div>
             <h5 class="fw-bold text-white mb-2">Network Isolation</h5>
-            <p class="text-slate-400 small mb-0">Checks follower-to-following imbalance, reciprocity, mutual connection density, and network isolation indices.</p>
+            <p class="text-slate-400 small mb-0">Checks follower-to-following imbalance, reciprocity, mutual connection
+                density, and network isolation indices.</p>
         </div>
     </div>
     <div class="col-md-4">
@@ -78,7 +82,8 @@
                 <i class="bi bi-person-bounding-box"></i>
             </div>
             <h5 class="fw-bold text-white mb-2">Profile Image Cues</h5>
-            <p class="text-slate-400 small mb-0">Flags default avatar placeholders, stock photo matches, or synthetic AI-generated profile pictures.</p>
+            <p class="text-slate-400 small mb-0">Flags default avatar placeholders, stock photo matches, or synthetic
+                AI-generated profile pictures.</p>
         </div>
     </div>
     <div class="col-md-4">
@@ -87,7 +92,8 @@
                 <i class="bi bi-cpu-fill"></i>
             </div>
             <h5 class="fw-bold text-white mb-2">Ensemble ML Models</h5>
-            <p class="text-slate-400 small mb-0">Trains Gradient Boosting, Random Forest, SVM, and Neural Network (MLP) models on 40+ unified features.</p>
+            <p class="text-slate-400 small mb-0">Trains Gradient Boosting, Random Forest, SVM, and Neural Network (MLP)
+                models on 40+ unified features.</p>
         </div>
     </div>
     <div class="col-md-4">
@@ -96,7 +102,8 @@
                 <i class="bi bi-shield-check"></i>
             </div>
             <h5 class="fw-bold text-white mb-2">Explainable Risk Scores</h5>
-            <p class="text-slate-400 small mb-0">Generates interpretable threat probabilities, specific severity indicators, and security team recommendations.</p>
+            <p class="text-slate-400 small mb-0">Generates interpretable threat probabilities, specific severity
+                indicators, and security team recommendations.</p>
         </div>
     </div>
 </div>
@@ -111,32 +118,40 @@
                 </div>
                 <div>
                     <h3 class="fw-bold mb-0 text-white">Single Profile Risk Analyzer</h3>
-                    <p class="text-muted mb-0">Enter a social media profile URL or handle to evaluate threat probability</p>
+                    <p class="text-muted mb-0">Enter a social media profile URL or handle to evaluate threat probability
+                    </p>
                 </div>
             </div>
 
             <form method="POST" action="{{ url_for('analyze_profile') }}">
                 <div class="mb-4">
-                    <label for="profile_url" class="form-label text-slate-300 fw-semibold">Profile URL or Username Handle</label>
-                    <input type="text" class="form-control form-control-lg bg-dark text-white border-secondary" 
-                           id="profile_url" name="profile_url" 
-                           placeholder="https://x.com/username or @username" required>
-                    <div class="form-text text-slate-400 mb-3">Supported formats: X/Twitter, Instagram, Facebook URLs or handles</div>
-                    
+                    <label for="profile_url" class="form-label text-slate-300 fw-semibold">Profile URL or Username
+                        Handle</label>
+                    <input type="text" class="form-control form-control-lg bg-dark text-white border-secondary"
+                        id="profile_url" name="profile_url" placeholder="https://x.com/username or @username" required>
+                    <div class="form-text text-slate-400 mb-3">Supported formats: X/Twitter, Instagram, Facebook URLs or
+                        handles</div>
+
                     <!-- Quick Presets -->
                     <div class="p-3 glass-card border-0 bg-black bg-opacity-25 rounded-3 mb-4">
-                        <label class="form-label text-info fw-semibold small mb-2"><i class="bi bi-lightning-charge me-1"></i> Benchmark Presets for Jury Demo (Click to Test)</label>
+                        <label class="form-label text-info fw-semibold small mb-2"><i
+                                class="bi bi-lightning-charge me-1"></i> Benchmark Presets for Jury Demo (Click to
+                            Test)</label>
                         <div class="d-flex flex-wrap gap-2">
-                            <button type="button" class="btn btn-outline-danger btn-sm" onclick="setPreset('@crypto_scam_bot')">
+                            <button type="button" class="btn btn-outline-danger btn-sm"
+                                onclick="setPreset('@crypto_scam_bot')">
                                 <i class="bi bi-exclamation-triangle me-1"></i> @crypto_scam_bot (Scam)
                             </button>
-                            <button type="button" class="btn btn-outline-danger btn-sm" onclick="setPreset('@mention_spammer_bot')">
+                            <button type="button" class="btn btn-outline-danger btn-sm"
+                                onclick="setPreset('@mention_spammer_bot')">
                                 <i class="bi bi-at me-1"></i> @mention_spammer_bot (Mention Spam)
                             </button>
-                            <button type="button" class="btn btn-outline-warning btn-sm" onclick="setPreset('@botnet_account_99')">
+                            <button type="button" class="btn btn-outline-warning btn-sm"
+                                onclick="setPreset('@botnet_account_99')">
                                 <i class="bi bi-robot me-1"></i> @botnet_account_99 (Bot)
                             </button>
-                            <button type="button" class="btn btn-outline-success btn-sm" onclick="setPreset('@legit_tech_dev')">
+                            <button type="button" class="btn btn-outline-success btn-sm"
+                                onclick="setPreset('@legit_tech_dev')">
                                 <i class="bi bi-check-circle me-1"></i> @legit_tech_dev (Legitimate)
                             </button>
                         </div>
@@ -145,7 +160,8 @@
 
                 <div class="mb-4">
                     <label for="platform" class="form-label text-slate-300 fw-semibold">Social Media Platform</label>
-                    <select class="form-select form-select-lg bg-dark text-white border-secondary" id="platform" name="platform">
+                    <select class="form-select form-select-lg bg-dark text-white border-secondary" id="platform"
+                        name="platform">
                         <option value="twitter">X / Twitter</option>
                         <option value="instagram">Instagram</option>
                         <option value="facebook">Facebook</option>
