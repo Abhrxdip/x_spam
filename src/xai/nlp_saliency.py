@@ -100,10 +100,16 @@ class NLPSaliencyExtractor:
         self._tokenizer = None
         self._model = None
         self._available = False
+        self._load_attempted = False
         self.model_dir = model_dir
 
-        if model_dir:
-            self._try_load_model(model_dir)
+    def _ensure_model_loaded(self):
+        """Lazy-load DistilBERT on first inference request."""
+        if self._load_attempted:
+            return
+        self._load_attempted = True
+        if self.model_dir:
+            self._try_load_model(self.model_dir)
 
     def _try_load_model(self, model_dir: str):
         """Attempt to load DistilBERT model for attention extraction."""
@@ -139,6 +145,8 @@ class NLPSaliencyExtractor:
         """
         if not tweet_text or not tweet_text.strip():
             return self._empty_result()
+
+        self._ensure_model_loaded()
 
         if self._available:
             try:

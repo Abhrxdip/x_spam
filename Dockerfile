@@ -29,4 +29,5 @@ ENV FLASK_DEBUG=False
 EXPOSE 5000
 
 # Start server using Gunicorn (dynamically binds to Render $PORT)
-CMD ["sh", "-c", "gunicorn app:app --timeout 120 --workers 2 --bind 0.0.0.0:${PORT:-5000}"]
+CMD ["sh", "-c", "gunicorn app:app --timeout 120 --workers 1 --bind 0.0.0.0:${PORT:-5000}"]
+
