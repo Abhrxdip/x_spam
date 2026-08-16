@@ -131,6 +131,17 @@ class UnifiedThreatDetector:
                 # Fallback to heuristic analysis if no model is available
                 probability, is_threat, feature_importance = self._heuristic_detection(features)
             
+            # Multi-Modal Decision Fusion: Incorporate deep NLP and explicit phishing/scam signals
+            nlp_threat = max(
+                features.get('nlp_phishing_score', 0.0),
+                features.get('suspicious_content_score', 0.0),
+                0.85 if features.get('spam_pattern_matches', 0) >= 3 else 0.0
+            )
+            if nlp_threat > 0.5:
+                # Fuse tabular baseline with deep semantic threat detection
+                probability = float(np.clip(0.35 * probability + 0.65 * nlp_threat, 0.0, 1.0))
+                is_threat = probability >= self.threat_threshold
+
             # Determine threat type
             threat_type = self._classify_threat_type(features, probability)
             
