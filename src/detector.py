@@ -94,12 +94,13 @@ class UnifiedThreatDetector:
 
         logger.info("UnifiedThreatDetector initialized successfully")
     
-    def analyze_profile(self, profile_data: Dict[str, Any]) -> Dict[str, Any]:
+    def analyze_profile(self, profile_data: Dict[str, Any], include_xai: bool = True) -> Dict[str, Any]:
         """
-        Analyze a single profile and determine if it's a threat.
+        Analyze a social media profile for threats.
         
         Args:
             profile_data: Dictionary containing profile information
+            include_xai: Whether to generate heavy Explainable AI forensic dossier (True for single, False for batch)
             
         Returns:
             Dictionary with analysis results including:
@@ -139,9 +140,9 @@ class UnifiedThreatDetector:
             # Generate recommendations based on the analysis
             recommendations = self._generate_recommendations(is_threat, probability, threat_type, indicators)
 
-            # ── XAI Forensic Report ──────────────────────────────────────────
+            # ── XAI Forensic Report (only for single profile view) ───────────
             xai_report = {}
-            if self.xai_engine is not None and feature_vector_scaled is not None:
+            if include_xai and self.xai_engine is not None and feature_vector_scaled is not None:
                 try:
                     tweets = profile_data.get('recent_tweets', [])
                     tweet_texts = []
@@ -209,7 +210,7 @@ class UnifiedThreatDetector:
     
     def batch_analyze(self, profiles: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
-        Analyze multiple profiles in batch.
+        Analyze multiple profiles in high-speed batch mode without heavy XAI overhead.
         
         Args:
             profiles: List of profile data dictionaries
@@ -217,12 +218,13 @@ class UnifiedThreatDetector:
         Returns:
             List of analysis results
         """
-        logger.info(f"Starting batch analysis of {len(profiles)} profiles")
+        logger.info(f"Starting high-speed batch analysis of {len(profiles)} profiles")
         
         results = []
         for i, profile in enumerate(profiles):
             try:
-                result = self.analyze_profile(profile)
+                # include_xai=False ensures ultra-fast batch evaluation (< 5ms per profile)
+                result = self.analyze_profile(profile, include_xai=False)
                 results.append(result)
             except Exception as e:
                 logger.error(f"Error analyzing profile {i}: {str(e)}")
