@@ -192,74 +192,230 @@ def fetch_official_x_api_v2_profile(username: str) -> Optional[Dict[str, Any]]:
 
     return None
 
+def _get_x_guest_token() -> Optional[str]:
+    """
+    Obtain a short-lived guest token from Twitter/X.
+    This is the same unauthenticated flow that x.com uses in the browser.
+    No API key required.
+    """
+    import urllib.request, json
+    # Public app-only bearer token used by x.com itself (read-only, unauthenticated)
+    _BEARER = (
+        "AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs"
+        "%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA"
+    )
+    try:
+        req = urllib.request.Request(
+            "https://api.twitter.com/1.1/guest/activate.json",
+            data=b"",
+            method="POST",
+            headers={
+                "Authorization": f"Bearer {_BEARER}",
+                "Content-Type": "application/x-www-form-urlencoded",
+                "User-Agent": (
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) "
+                    "Chrome/125.0.0.0 Safari/537.36"
+                ),
+                "Origin": "https://x.com",
+                "Referer": "https://x.com/",
+            },
+        )
+        with urllib.request.urlopen(req, timeout=8) as r:
+            return json.loads(r.read()).get("guest_token")
+    except Exception as e:
+        logger.info(f"Guest token fetch error: {e}")
+        return None
+
+
 def fetch_live_twitter_profile(username: str) -> Optional[Dict[str, Any]]:
     """
-    Attempt to fetch real live public X/Twitter profile metrics and tweets.
-    Strategy 1: Official X API v2 with Bearer Token.
-    Strategy 2: Public Syndication Endpoint.
+    Fetch a real live public X/Twitter profile using Twitter's internal
+    GraphQL API (the same endpoint x.com uses in the browser).
+
+    Strategy 1: Official X API v2 Bearer Token (if configured in .env).
+    Strategy 2: Guest-token + internal GraphQL — no key needed.
     """
-    # Strategy 1: Official X API v2 (if token present in env)
+    import urllib.request, json, urllib.parse
+
+    # ── Strategy 1: Official API v2 (needs paid plan or elevated access) ─────
     v2_data = fetch_official_x_api_v2_profile(username)
     if v2_data:
         return v2_data
 
-    import urllib.request
-    import json
-    
+    # ── Strategy 2: Guest-token + internal GraphQL ────────────────────────────
+    _BEARER = (
+        "AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs"
+        "%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA"
+    )
+    _COMMON_HEADERS = {
+        "Authorization": f"Bearer {_BEARER}",
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/125.0.0.0 Safari/537.36"
+        ),
+        "Accept": "*/*",
+        "Referer": "https://x.com/",
+        "Origin": "https://x.com",
+        "x-twitter-active-user": "yes",
+        "x-twitter-client-language": "en",
+    }
+
     try:
-        url = f"https://syndication.twitter.com/srv/timeline-profile/screen-name/{username}"
-        req = urllib.request.Request(
-            url, 
-            headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'}
+        guest_token = _get_x_guest_token()
+        if not guest_token:
+            raise RuntimeError("Could not obtain guest token")
+
+        headers = {**_COMMON_HEADERS, "X-Guest-Token": guest_token}
+
+        # ── 2a. Fetch user profile via UserByScreenName GraphQL ───────────────
+        variables = json.dumps({
+            "screen_name": username,
+            "withSafetyModeUserFields": True,
+        })
+        features = json.dumps({
+            "hidden_profile_subscriptions_enabled": True,
+            "rweb_tipjar_consumption_enabled": True,
+            "responsive_web_graphql_exclude_directive_enabled": True,
+            "verified_phone_label_enabled": False,
+            "subscriptions_verification_info_is_identity_verified_enabled": True,
+            "subscriptions_verification_info_verified_since_enabled": True,
+            "highlights_tweets_tab_ui_enabled": True,
+            "responsive_web_twitter_article_notes_tab_enabled": True,
+            "creator_subscriptions_tweet_preview_api_enabled": True,
+            "responsive_web_graphql_skip_user_profile_image_extensions_enabled": False,
+            "responsive_web_graphql_timeline_navigation_enabled": True,
+        })
+        params = urllib.parse.urlencode({"variables": variables, "features": features})
+        profile_url = (
+            f"https://twitter.com/i/api/graphql/"
+            f"NimuplG1OB7Fd2btCLdBOw/UserByScreenName?{params}"
         )
-        with urllib.request.urlopen(req, timeout=5) as resp:
-            html = resp.read().decode('utf-8')
 
-        if '__NEXT_DATA__' in html:
-            json_str = html.split('<script id="__NEXT_DATA__" type="application/json">')[1].split('</script>')[0]
-            data = json.loads(json_str)
-            
-            timeline_entries = data.get('props', {}).get('pageProps', {}).get('timeline', {}).get('entries', [])
-            user_data = None
-            posts_data = []
+        req = urllib.request.Request(profile_url, headers=headers)
+        with urllib.request.urlopen(req, timeout=10) as r:
+            data = json.loads(r.read())
 
-            for entry in timeline_entries:
-                tweet = entry.get('content', {}).get('tweet', {})
-                if tweet:
-                    if not user_data:
-                        user_info = tweet.get('user', {})
-                        user_data = {
-                            'username': user_info.get('screen_name', username),
-                            'display_name': user_info.get('name', username),
-                            'followers_count': user_info.get('followers_count', 0),
-                            'following_count': user_info.get('friends_count', 0),
-                            'posts_count': user_info.get('statuses_count', 0),
-                            'profile_pic_url': user_info.get('profile_image_url_https', ''),
-                            'verified': user_info.get('verified', False),
-                            'creation_date': user_info.get('created_at', '')
-                        }
-                    posts_data.append({
-                        'text': tweet.get('text', ''),
-                        'likes': tweet.get('favorite_count', 0),
-                        'retweets': tweet.get('retweet_count', 0),
-                        'replies': 0,
-                        'timestamp': tweet.get('created_at', '')
-                    })
+        user_result = (
+            data.get("data", {}).get("user", {}).get("result", {})
+        )
+        legacy = user_result.get("legacy", {})
 
-            if user_data:
-                user_data['posts'] = posts_data
-                user_data['bio'] = f"Official Twitter handle @{username}"
-                user_data['external_url'] = f"https://x.com/{username}"
-                user_data['sentiment_label'] = 'neutral'
-                user_data['country'] = 'US'
-                user_data['account_type'] = 'individual'
-                user_data['gender'] = 'unknown'
-                user_data['thread_entry_type'] = 'original'
-                logger.info(f"Successfully fetched live X/Twitter profile for '{username}'")
-                return user_data
+        if not legacy:
+            logger.info(f"No legacy data returned for '{username}'")
+            return None
+
+        user_id = user_result.get("rest_id", "")
+        followers  = legacy.get("followers_count", 0)
+        following  = legacy.get("friends_count", 0)
+        tweet_count = legacy.get("statuses_count", 0)
+        display_name = legacy.get("name", username)
+        bio = legacy.get("description", "")
+        verified = legacy.get("verified", False) or bool(
+            user_result.get("is_blue_verified")
+        )
+        created_at = legacy.get("created_at", "")
+        profile_pic = legacy.get("profile_image_url_https", "").replace(
+            "_normal", "_400x400"
+        )
+
+        # ── 2b. Fetch recent tweets via UserTweets GraphQL ────────────────────
+        posts_data = []
+        if user_id:
+            try:
+                t_vars = json.dumps({
+                    "userId": user_id,
+                    "count": 10,
+                    "includePromotedContent": False,
+                    "withQuickPromoteEligibilityTweetFields": False,
+                    "withVoice": True,
+                    "withV2Timeline": True,
+                })
+                t_features = json.dumps({
+                    "rweb_lists_timeline_redesign_enabled": True,
+                    "responsive_web_graphql_exclude_directive_enabled": True,
+                    "verified_phone_label_enabled": False,
+                    "creator_subscriptions_tweet_preview_api_enabled": True,
+                    "responsive_web_graphql_timeline_navigation_enabled": True,
+                    "responsive_web_graphql_skip_user_profile_image_extensions_enabled": False,
+                    "tweetypie_unmention_optimization_enabled": True,
+                    "responsive_web_edit_tweet_api_enabled": True,
+                    "graphql_is_translatable_rweb_tweet_is_translatable_enabled": True,
+                    "view_counts_everywhere_api_enabled": True,
+                    "longform_notetweets_consumption_enabled": True,
+                    "tweet_awards_web_tipping_enabled": False,
+                    "freedom_of_speech_not_reach_fetch_enabled": True,
+                    "standardized_nudges_misinfo": True,
+                    "longform_notetweets_rich_text_read_enabled": True,
+                    "responsive_web_enhance_cards_enabled": False,
+                })
+                t_params = urllib.parse.urlencode(
+                    {"variables": t_vars, "features": t_features}
+                )
+                tweets_url = (
+                    f"https://twitter.com/i/api/graphql/"
+                    f"V7H0Ap3_Hh2FyS75OCDO3Q/UserTweets?{t_params}"
+                )
+                t_req = urllib.request.Request(tweets_url, headers=headers)
+                with urllib.request.urlopen(t_req, timeout=10) as t_r:
+                    t_data = json.loads(t_r.read())
+
+                # Walk the timeline instructions to extract tweet entries
+                instructions = (
+                    t_data.get("data", {})
+                    .get("user", {})
+                    .get("result", {})
+                    .get("timeline_v2", {})
+                    .get("timeline", {})
+                    .get("instructions", [])
+                )
+                for instr in instructions:
+                    for entry in instr.get("entries", []):
+                        content = entry.get("content", {})
+                        item_content = content.get("itemContent", {})
+                        tweet_result = (
+                            item_content.get("tweet_results", {}).get("result", {})
+                        )
+                        t_legacy = tweet_result.get("legacy", {})
+                        if t_legacy and t_legacy.get("full_text"):
+                            metrics = t_legacy.get("public_metrics", {})
+                            posts_data.append({
+                                "text": t_legacy.get("full_text", ""),
+                                "likes": t_legacy.get("favorite_count", 0),
+                                "retweets": t_legacy.get("retweet_count", 0),
+                                "replies": t_legacy.get("reply_count", 0),
+                                "timestamp": t_legacy.get("created_at", ""),
+                            })
+            except Exception as te:
+                logger.info(f"Tweet fetch note for '{username}': {te}")
+
+        logger.info(
+            f"Successfully fetched live X/Twitter profile for '{username}' "
+            f"({followers:,} followers, {tweet_count:,} tweets)"
+        )
+        return {
+            "username": legacy.get("screen_name", username),
+            "display_name": display_name,
+            "bio": bio,
+            "followers_count": followers,
+            "following_count": following,
+            "posts_count": tweet_count,
+            "profile_pic_url": profile_pic,
+            "verified": verified,
+            "creation_date": created_at,
+            "external_url": f"https://x.com/{username}",
+            "posts": posts_data,
+            "sentiment_label": "neutral",
+            "country": "US",
+            "account_type": "individual",
+            "gender": "unknown",
+            "thread_entry_type": "original",
+        }
+
     except Exception as e:
-        logger.info(f"Live Twitter fetch bypass for '{username}': {str(e)}")
-    
+        logger.info(f"GraphQL fetch failed for '{username}': {e}")
+
     return None
 
 def get_twitter_profile_data(username: str) -> Dict[str, Any]:

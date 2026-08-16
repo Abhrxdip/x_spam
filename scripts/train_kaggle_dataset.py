@@ -32,25 +32,22 @@ def download_kaggle_dataset() -> Optional[str]:
     from dotenv import load_dotenv
     load_dotenv()
     
-    # Check if Kaggle credentials exist in environment or ~/.kaggle/kaggle.json
-    kaggle_config = os.path.expanduser('~/.kaggle/kaggle.json')
-    has_creds = os.path.exists(kaggle_config) or ('KAGGLE_USERNAME' in os.environ and 'KAGGLE_KEY' in os.environ)
-
-    if not has_creds:
-        logger.info("Kaggle credentials not found in env (KAGGLE_USERNAME / KAGGLE_KEY) or ~/.kaggle/kaggle.json")
-        logger.info("Proceeding with DeBERTa Transformer multi-modal feature dataset generator...")
-        return None
-
-    logger.info("Downloading Kaggle Twitter Spam dataset via kagglehub API...")
+    logger.info("Downloading Kaggle Twitter Spam dataset via kagglehub competition API...")
     try:
-        path = kagglehub.dataset_download('lokeshparab/twitter-spam-dataset')
-        logger.info(f"Successfully downloaded dataset files to: {path}")
+        path = kagglehub.competition_download('twitter-spam')
+        logger.info(f"Successfully downloaded competition dataset files to: {path}")
         return path
     except Exception as e:
-        logger.info(f"Kaggle API download note ({str(e)}). Proceeding with DeBERTa feature engine...")
-        return None
+        logger.info(f"Competition download note ({str(e)}). Trying dataset download...")
+        try:
+            path = kagglehub.dataset_download('lokeshparab/twitter-spam-dataset')
+            logger.info(f"Successfully downloaded dataset files to: {path}")
+            return path
+        except Exception as ex:
+            logger.info(f"Kaggle download bypass ({str(ex)}). Proceeding with DeBERTa feature engine...")
+            return None
 
-def process_and_train_kaggle_data(data_path: str):
+def process_and_train_kaggle_data(data_path: Optional[str]):
     """Process Kaggle Twitter Spam dataset, compute DeBERTa features, and train models."""
     from src.features.deberta_analyzer import get_deberta_analyzer
     from src.models.train_model import ModelTrainer, generate_synthetic_training_data
@@ -62,12 +59,33 @@ def process_and_train_kaggle_data(data_path: str):
 
     deberta = get_deberta_analyzer()
     
-    # Load and process training data
-    if csv_files:
+    # Process Kaggle CSV file if available
+    target_csv = None
+    for f in csv_files:
+        if 'train.csv' in f.lower() or 'twitter_spam.csv' in f.lower():
+            target_csv = f
+            break
+    if not target_csv and csv_files:
+        target_csv = csv_files[0]
+
+    if target_csv:
         try:
-            logger.info(f"Reading Kaggle dataset file: {csv_files[0]}")
-            kdf = pd.read_csv(csv_files[0], encoding='latin1')
-            logger.info(f"Loaded Kaggle dataset with {len(kdf)} rows and columns: {list(kdf.columns)[:10]}")
+            logger.info(f"Processing Kaggle dataset file: {target_csv}")
+            kdf = pd.read_csv(target_csv, encoding='latin1')
+            logger.info(f"Loaded Kaggle dataset with {len(kdf)} rows and columns: {list(kdf.columns)}")
+            
+            # Map Kaggle columns to unified dataset format if Tweet column exists
+            if 'Tweet' in kdf.columns or 'text' in kdf.columns:
+                tweet_col = 'Tweet' if 'Tweet' in kdf.columns else 'text'
+                logger.info(f"Running DeBERTa NLP Analysis on {min(1000, len(kdf))} Kaggle tweet samples...")
+                
+                # Sample for fast feature extraction
+                sample_kdf = kdf.sample(n=min(3000, len(kdf)), random_state=42).copy()
+                phish_scores = []
+                for tweet in sample_kdf[tweet_col].fillna(''):
+                    phish_scores.append(deberta.predict_phishing_score(str(tweet)))
+                
+                logger.info(f"DeBERTa NLP extraction complete! Mean threat score: {np.mean(phish_scores):.4f}")
         except Exception as e:
             logger.warning(f"Error reading Kaggle CSV file: {str(e)}")
 
