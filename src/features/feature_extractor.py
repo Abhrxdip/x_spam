@@ -179,17 +179,28 @@ class UnifiedFeatureExtractor:
             unique_posts = len(set(post_texts))
             features['duplicate_post_ratio'] = 1.0 - (unique_posts / len(post_texts)) if post_texts else 0
 
-            # Microsoft DeBERTa v3 Transformer NLP Analysis
+            # ── Fine-tuned DistilBERT NLP Classifier ──────────────────────────
+            # Replaces old zero-shot DeBERTa with domain-specific fine-tuned model.
+            # Falls back to keyword heuristics if model not yet trained.
+            # Run: python scripts/finetune_nlp.py  (one-time, ~20 min on CPU)
             try:
                 from src.features.deberta_analyzer import get_deberta_analyzer
-                deberta_analyzer = get_deberta_analyzer()
-                deberta_metrics = deberta_analyzer.analyze_post_texts(post_texts)
-                features['deberta_phishing_score'] = deberta_metrics['deberta_phishing_score']
-                features['deberta_spam_confidence'] = deberta_metrics['deberta_spam_confidence']
+                nlp_analyzer = get_deberta_analyzer()
+                nlp_metrics = nlp_analyzer.analyze_post_texts(post_texts)
+                features['deberta_phishing_score'] = nlp_metrics['deberta_phishing_score']
+                features['deberta_spam_confidence'] = nlp_metrics['deberta_spam_confidence']
+                features['nlp_phishing_score']      = nlp_metrics.get('nlp_phishing_score', 0.0)
+                features['nlp_spam_confidence']     = nlp_metrics.get('nlp_spam_confidence', 0.0)
+                features['nlp_threat_class']        = nlp_metrics.get('nlp_threat_class', 0)
+                features['nlp_high_risk_count']     = nlp_metrics.get('nlp_high_risk_count', 0)
             except Exception as e:
-                logger.debug(f"DeBERTa feature extraction fallback: {str(e)}")
+                logger.debug(f"NLP classifier fallback: {str(e)}")
                 features['deberta_phishing_score'] = 0.0
                 features['deberta_spam_confidence'] = 0.0
+                features['nlp_phishing_score']     = 0.0
+                features['nlp_spam_confidence']    = 0.0
+                features['nlp_threat_class']       = 0
+                features['nlp_high_risk_count']    = 0
         else:
             features['sentiment_score'] = 0.5
             features['content_diversity'] = 1.0
@@ -203,6 +214,10 @@ class UnifiedFeatureExtractor:
             features['duplicate_post_ratio'] = 0.0
             features['deberta_phishing_score'] = 0.0
             features['deberta_spam_confidence'] = 0.0
+            features['nlp_phishing_score']     = 0.0
+            features['nlp_spam_confidence']    = 0.0
+            features['nlp_threat_class']       = 0
+            features['nlp_high_risk_count']    = 0
         
         return features
     

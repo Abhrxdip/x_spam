@@ -11,5 +11,7 @@ plotly==5.16.1
 pillow==10.0.0
 werkzeug==2.3.7
 gunicorn==21.2.0
-transformers
-torch
+transformers>=4.35.0
+torch>=2.0.0
+datasets>=2.14.0
+accelerate>=0.24.0

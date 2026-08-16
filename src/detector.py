@@ -554,6 +554,27 @@ class UnifiedThreatDetector:
                 'description': 'High follower count without verification',
                 'value': features.get('followers_count', 0)
             })
+
+        # Fine-tuned NLP Classifier Threat Detection
+        nlp_score = features.get('nlp_phishing_score', 0.0)
+        nlp_class = features.get('nlp_threat_class', 0)
+        nlp_high  = features.get('nlp_high_risk_count', 0)
+        _NLP_CLASS_NAMES = {
+            1: 'Crypto Scam',
+            2: 'Phishing',
+            3: 'Mention Spam',
+            4: 'Social Engineering',
+        }
+        if nlp_score > 0.55 and nlp_class in _NLP_CLASS_NAMES:
+            indicators.append({
+                'type': 'nlp_threat_detected',
+                'severity': 'high' if nlp_score > 0.75 else 'medium',
+                'description': (
+                    f'AI language model classified posts as {_NLP_CLASS_NAMES[nlp_class]} '
+                    f'(confidence {nlp_score:.0%}, {nlp_high} high-risk posts)'
+                ),
+                'value': nlp_score,
+            })
         
         # Sort by severity
         severity_order = {'high': 0, 'medium': 1, 'low': 2}

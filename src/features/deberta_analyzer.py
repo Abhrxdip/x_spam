@@ -1,123 +1,105 @@
 """
-Microsoft DeBERTa v3 Transformer NLP Analyzer for Unified Social Media Threat Detector.
+DeBERTa Analyzer — Compatibility Shim
 
-Uses microsoft/deberta-v3-base from Hugging Face for deep natural language understanding
-of social media posts, bios, crypto phishing cues, and social engineering context.
+This module now delegates to the fine-tuned DistilBERT NLP classifier
+(src/features/nlp_classifier.py) while preserving the original API
+surface so no other code needs to change.
+
+The old zero-shot DeBERTa approach required 900MB+ model download and
+was impractical for real-time inference. The fine-tuned DistilBERT
+is 260MB, loads in ~3 seconds, and has domain-specific accuracy.
 """
 
-import os
-import re
 import logging
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any
 
 logger = logging.getLogger(__name__)
 
-# Lazy singleton instance
+# ─── Singleton ────────────────────────────────────────────────────────────────
 _DEBERTA_ANALYZER_INSTANCE = None
+
 
 class DeBERTaAnalyzer:
     """
-    NLP Threat Analyzer powered by Microsoft DeBERTa v3 transformer architecture.
+    Backwards-compatible wrapper around the fine-tuned NLP classifier.
+    Returns the same keys as the original DeBERTa implementation so
+    feature_extractor.py works without changes.
     """
-    
-    def __init__(self, model_name: str = "microsoft/deberta-v3-base"):
-        self.model_name = model_name
-        self.tokenizer = None
-        self.model = None
-        self.pipeline = None
-        self._is_loaded = False
-        
-        # High risk scam triggers for fast neural scoring
-        self.phishing_keywords = [
-            'airdrop', 'giveaway', 'doubler', 'seed phrase', 'claim', 'metamask',
-            'trustwallet', 'telegram', 'whatsapp', 'presale', 'whitelist', 'solana',
-            'usdt', 'guaranteed profit', 'instant payout', 'free bitcoin', 'dm for collabs'
-        ]
+
+    def __init__(self):
+        self._clf = None
+
+    def _get_clf(self):
+        if self._clf is None:
+            from src.features.nlp_classifier import get_nlp_classifier
+            self._clf = get_nlp_classifier()
+        return self._clf
 
     def load_model(self) -> bool:
-        """
-        Lazily load DeBERTa tokenizer and model.
-        """
-        if self._is_loaded:
-            return True
-
-        try:
-            logger.info(f"Loading Microsoft DeBERTa transformer model: {self.model_name}")
-            from transformers import pipeline
-            
-            # Initialize zero-shot or text-classification pipeline
-            self.pipeline = pipeline(
-                "zero-shot-classification",
-                model=self.model_name,
-                device=-1  # CPU inference
-            )
-            self._is_loaded = True
-            logger.info("Microsoft DeBERTa transformer initialized successfully!")
-            return True
-        except Exception as e:
-            logger.warning(f"Could not load Hugging Face DeBERTa model '{self.model_name}': {str(e)}")
-            self._is_loaded = False
-            return False
+        """Lazy-load the underlying NLP classifier."""
+        clf = self._get_clf()
+        clf._load_model()
+        return clf.is_model_loaded()
 
     def predict_phishing_score(self, text: str) -> float:
+        """Return phishing/threat probability for a single text."""
+        clf = self._get_clf()
+        result = clf.classify_text(text)
+        # Sum of all non-legitimate scores weighted by confidence
+        scores = result.get("scores", {})
+        threat_score = (
+            scores.get("crypto_scam", 0.0) * 1.0
+            + scores.get("phishing", 0.0) * 1.0
+            + scores.get("mention_spam", 0.0) * 0.7
+            + scores.get("social_engineering", 0.0) * 0.8
+        )
+        return round(min(1.0, threat_score), 4)
+
+    def analyze_post_texts(self, post_texts: List[str]) -> Dict[str, Any]:
         """
-        Evaluate a single post or bio string for social engineering / phishing threat probability.
-        """
-        if not text or len(text.strip()) == 0:
-            return 0.0
+        Analyse a list of post texts and return DeBERTa-compatible metrics.
 
-        lower_text = text.lower()
-        
-        # Calculate fast keyword weight
-        keyword_hits = sum(1 for kw in self.phishing_keywords if kw in lower_text)
-        base_score = min(1.0, keyword_hits * 0.25)
-        
-        # Check regex patterns (wallet addresses, shorteners)
-        if re.search(r'0x[a-fA-F0-9]{40}', text) or re.search(r'https?://(bit\.ly|t\.me|wa\.me)/\S*', text):
-            base_score = max(base_score, 0.85)
-
-        # Attempt Transformer Zero-Shot Inference if loaded
-        if self._is_loaded and self.pipeline is not None:
-            try:
-                candidate_labels = ["legitimate communication", "phishing crypto scam", "spam promotion"]
-                res = self.pipeline(text[:512], candidate_labels)
-                labels = res.get('labels', [])
-                scores = res.get('scores', [])
-                
-                label_score_map = dict(zip(labels, scores))
-                phish_prob = label_score_map.get("phishing crypto scam", 0.0) + label_score_map.get("spam promotion", 0.0)
-                return float(max(base_score, phish_prob))
-            except Exception as e:
-                logger.debug(f"DeBERTa pipeline inference bypass: {str(e)}")
-
-        return float(base_score)
-
-    def analyze_post_texts(self, post_texts: List[str]) -> Dict[str, float]:
-        """
-        Analyze a list of post texts and return aggregated DeBERTa threat metrics.
+        Returns the original keys PLUS new NLP keys so the feature
+        vector gains richer signals without breaking existing features.
         """
         if not post_texts:
             return {
-                'deberta_phishing_score': 0.0,
-                'deberta_spam_confidence': 0.0,
-                'deberta_high_risk_posts_count': 0
+                "deberta_phishing_score": 0.0,
+                "deberta_spam_confidence": 0.0,
+                "deberta_high_risk_posts_count": 0,
+                # New keys from fine-tuned model
+                "nlp_phishing_score": 0.0,
+                "nlp_spam_confidence": 0.0,
+                "nlp_threat_class": 0,
+                "nlp_high_risk_count": 0,
             }
 
-        scores = [self.predict_phishing_score(t) for t in post_texts]
-        max_score = max(scores) if scores else 0.0
-        avg_score = sum(scores) / len(scores) if scores else 0.0
-        high_risk_count = sum(1 for s in scores if s > 0.6)
+        clf = self._get_clf()
+        metrics = clf.analyze_posts(post_texts)
+
+        logger.debug(
+            "NLP Classifier (%s) — phishing_score=%.3f spam_confidence=%.3f threat_class=%s",
+            clf.model_status(),
+            metrics["nlp_phishing_score"],
+            metrics["nlp_spam_confidence"],
+            metrics["nlp_threat_class"],
+        )
 
         return {
-            'deberta_phishing_score': float(max_score),
-            'deberta_spam_confidence': float(avg_score),
-            'deberta_high_risk_posts_count': int(high_risk_count)
+            # Backwards-compatible keys
+            "deberta_phishing_score": metrics["nlp_phishing_score"],
+            "deberta_spam_confidence": metrics["nlp_spam_confidence"],
+            "deberta_high_risk_posts_count": metrics["nlp_high_risk_count"],
+            # New enriched keys
+            "nlp_phishing_score": metrics["nlp_phishing_score"],
+            "nlp_spam_confidence": metrics["nlp_spam_confidence"],
+            "nlp_threat_class": metrics["nlp_threat_class"],
+            "nlp_high_risk_count": metrics["nlp_high_risk_count"],
         }
 
+
 def get_deberta_analyzer() -> DeBERTaAnalyzer:
-    """
-    Get singleton DeBERTa analyzer instance.
-    """
+    """Return global singleton DeBERTa/NLP analyzer."""
     global _DEBERTA_ANALYZER_INSTANCE
     if _DEBERTA_ANALYZER_INSTANCE is None:
         _DEBERTA_ANALYZER_INSTANCE = DeBERTaAnalyzer()
