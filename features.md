@@ -1,7 +1,7 @@
-# 🏆 SIH 2026 MASTER EVALUATION & PITCH PLAYBOOK
+# 🏆 MASTER TECHNICAL EVALUATION & SYSTEM DEFENSE DOSSIER
 ## Adaptive Social Engineering Defense Framework (ASEDF)
-**Internal Hackathon Evaluation | Academy of Technology (AOT) | Smart India Hackathon 2026**
-*Target Score: 95–100 / 100 Marks (Category: Outstanding — Strongly Recommended for SIH Nomination)*
+**Comprehensive Technical Assessment | System Architecture, Model Benchmarks & Defense Strategy**
+*Target Score: 95–100 / 100 Marks (Category: Outstanding — Enterprise Production Readiness)*
 
 ---
 
@@ -30,7 +30,7 @@ Modern social networks (X/Twitter, Instagram, Facebook, Telegram) have become we
 1. **The API Paywall Barrier:** Official platform APIs (e.g., X API v2) cost **$100 to $5,000 per month**. This completely prices out independent researchers, public cyber cells, and educational institutions.
 2. **Single-Feature Vulnerability:** Traditional moderation filters rely on basic rules (e.g., follower counts or keyword blacklists). When scammers buy 50,000 followers from SMM panels or generate human-like text with LLMs (ChatGPT), traditional systems fail.
 3. **The "Black-Box" Trust Deficit:** Legacy ML classifiers output arbitrary flags (`"85% Bot"`) without legal proof or feature attribution. This causes severe alert fatigue in Security Operations Centers (SOCs) and leads to false-positive disputes.
-4. **Data Leakage & Fake 99% Accuracy:** Toy hackathon projects train on simplistic synthetic data and claim fake 100% accuracy, but immediately collapse against real-world zero-day adversarial attacks.
+4. **Data Leakage & Fake 99% Accuracy:** Naive baseline projects train on simplistic synthetic data and claim fake 100% accuracy, but immediately collapse against real-world zero-day adversarial attacks.
 
 ### 1.3 Target Stakeholders & Beneficiaries:
 * **National Cyber Defense & Law Enforcement (CERT-In / I4C):** Automated generation of legally admissible, tamper-proof threat dossiers with SHA-256 evidence anchoring.
@@ -257,7 +257,7 @@ ASEDF introduces **5 breakthrough innovations** not found in conventional bot de
 
 ---
 
-## ❓ SECTION 8: Ultimate SIH Cross-Question Defense (20 Questions & Winning Answers) (10 Marks)
+## ❓ SECTION 8: Comprehensive Technical Cross-Question Defense (20 Questions & In-Depth Technical Responses)
 
 ### ❓ Q1: *"Why is your model accuracy ~81% and not 99% or 100%?"*
 > **Winning Answer:** *"In real-world social media cybersecurity, user behavior is stochastic and noisy. Any model reporting 99% accuracy on bot detection suffers from **severe label leakage or shortcut overfitting on synthetic toy data**. We evaluated 10 algorithms across **50,000 real profiles with $L_2$ anti-shortcut regularization**. Our honest 80.96% accuracy and 0.891 ROC-AUC guarantee true generalization against unseen adversarial attacks."*
@@ -354,12 +354,12 @@ ASEDF introduces **5 breakthrough innovations** not found in conventional bot de
 
 ---
 
-### ❓ Q20: *"What is your roadmap for taking this project to national deployment after SIH?"*
+### ❓ Q20: *"What is your roadmap for taking this project to national deployment?"*
 > **Winning Answer:** *"1. Release the free citizen portal as a Chrome Extension for real-time browsing protection. 2. Provide certified STIX 2.1 threat feed integrations for I4C and CERT-In SOC analysts. 3. Partner with Web3 foundations and fintech platforms for automated brand impersonation takedown APIs."*
 
 ---
 
-## 🏆 Summary Checklist for Hackathon Presentation
+## 🏆 Summary Checklist for Evaluation & Live Demonstration
 
 - [x] Web server active locally on `http://127.0.0.1:5000` (and live on Render Cloud).
 - [x] Test profiles prepared: `@Abhrxdi4p` (Legitimate), `@sama` (Tech Leader), `@free_sol_airdrop2026` (Scam Bot).
@@ -369,6 +369,6 @@ ASEDF introduces **5 breakthrough innovations** not found in conventional bot de
 - [x] Cross-question answers memorized for all 20 judge scenarios.
 
 <p align="center">
-  <b>Built for Smart India Hackathon (SIH) 2026 Grand Finale Nomination</b><br/>
+  <b>Adaptive Social Engineering Defense Framework (ASEDF)</b><br/>
   <i>Engineered with Academic Rigor, Mathematical Precision & Operational Excellence</i>
 </p>
